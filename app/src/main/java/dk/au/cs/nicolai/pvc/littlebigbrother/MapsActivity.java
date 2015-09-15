@@ -1,5 +1,6 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
+import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 
@@ -97,9 +98,14 @@ public class MapsActivity extends FragmentActivity
         super.onStop();
     }
 
+    /**
+     * <p>Called after succesfully connecting to Google Play services.</p>
+     *
+     * @param connectionHint
+     */
     public void onConnected(Bundle connectionHint) {
-        // Connected to Google Play services!
-        // The good stuff goes here.
+        Location userLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+
 
         // TODO: Get user location and set map camera position.
         // TODO: Allow Intent-provided data to override this setting.
