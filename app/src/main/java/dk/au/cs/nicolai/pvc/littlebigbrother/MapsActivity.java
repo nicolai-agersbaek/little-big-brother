@@ -1,5 +1,7 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
+import android.content.DialogInterface;
+import android.content.IntentSender;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -9,25 +11,37 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity
-    implements ConnectionCallbacks, OnConnectionFailedListener{
+    implements OnMapReadyCallback, ConnectionCallbacks, OnConnectionFailedListener{
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private GoogleApiClient mGoogleApiClient;
 
-    // TODO: Save current camera position in Location (?) private field.
+    private CameraPosition currentCameraPosition;
     // TODO: Add list of current map markers.
+
+    // Request code to use when launching the resolution activity
+    private static final int REQUEST_RESOLVE_ERROR = 1001;
+    // Unique tag for the error dialog fragment
+    private static final String DIALOG_ERROR = "dialog_error";
+    // Bool to track whether the app is already resolving an error
+    private boolean mResolvingError = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        setUpMapIfNeeded();
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
 
@@ -41,35 +55,8 @@ public class MapsActivity extends FragmentActivity
     @Override
     protected void onResume() {
         super.onResume();
-        setUpMapIfNeeded();
-    }
 
-    /**
-     * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
-     * installed) and the map has not already been instantiated.. This will ensure that we only ever
-     * call {@link #setUpMap()} once when {@link #mMap} is not null.
-     * <p/>
-     * If it isn't installed {@link SupportMapFragment} (and
-     * {@link com.google.android.gms.maps.MapView MapView}) will show a prompt for the user to
-     * install/update the Google Play services APK on their device.
-     * <p/>
-     * A user can return to this FragmentActivity after following the prompt and correctly
-     * installing/updating/enabling the Google Play services. Since the FragmentActivity may not
-     * have been completely destroyed during this process (it is likely that it would only be
-     * stopped or paused), {@link #onCreate(Bundle)} may not be called again so we should call this
-     * method in {@link #onResume()} to guarantee that it will be called.
-     */
-    private void setUpMapIfNeeded() {
-        // Do a null check to confirm that we have not already instantiated the map.
-        if (mMap == null) {
-            // Try to obtain the map from the SupportMapFragment.
-            mMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
-            // Check if we were successful in obtaining the map.
-            if (mMap != null) {
-                setUpMap();
-            }
-        }
+
     }
 
     /**
@@ -77,11 +64,19 @@ public class MapsActivity extends FragmentActivity
      *
      * <p>This should only be called once and when we are sure that {@link #mMap} is not null.</p>
      */
-    private void setUpMap() {
+    @Override
+    public void onMapReady(GoogleMap map) {
         // TODO: Get previous camera position from state.
         // TODO: Get map markers from state.
+        // TODO: Tidy up filler code.
 
-        //mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        // Assign the passed GoogleMap instance to a private field
+        mMap = map;
+
+        // Add a marker in Sydney, Australia, and move the camera.
+        LatLng sydney = new LatLng(-34, 151);
+        map.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
+        map.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 
     @Override
@@ -99,15 +94,26 @@ public class MapsActivity extends FragmentActivity
     }
 
     /**
-     * <p>Called after succesfully connecting to Google Play services.</p>
+     * <p>Called after successfully connecting to Google Play services.</p>
      *
      * @param connectionHint
      */
     public void onConnected(Bundle connectionHint) {
+        // Get last known user Location object from API.
         Location userLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        LatLng userPosition = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+
+        // Create CameraPosition object from userPosition, using default zoom level
+        currentCameraPosition = new CameraPosition.Builder()
+                .target(userPosition)
+                .zoom(LittleBigBrother.DEFAULT_ZOOM_LEVEL)
+                .build();
+
+        mMap.addMarker(new MarkerOptions().position(userPosition).snippet("Her er du."));
+        mMap.moveCamera(CameraUpdateFactory.newCameraPosition(currentCameraPosition));
 
 
-        // TODO: Get user location and set map camera position.
+
         // TODO: Allow Intent-provided data to override this setting.
     }
 
@@ -120,10 +126,21 @@ public class MapsActivity extends FragmentActivity
 
     @Override
     public void onConnectionFailed(ConnectionResult result) {
-        // This callback is important for handling errors that
-        // may occur while attempting to connect with Google.
-        //
-        // More about this in the 'Handle Connection Failures' section.
-        ...
+        if (mResolvingError) {
+            // Already attempting to resolve an error.
+            return;
+        } else if (result.hasResolution()) {
+            try {
+                mResolvingError = true;
+                result.startResolutionForResult(this, REQUEST_RESOLVE_ERROR);
+            } catch (IntentSender.SendIntentException e) {
+                // There was an error with the resolution intent. Try again.
+                mGoogleApiClient.connect();
+            }
+        } else {
+            // Show dialog using GoogleApiAvailability.getErrorDialog()
+            //showErrorDialog(result.getErrorCode());
+            mResolvingError = true;
+        }
     }
 }
