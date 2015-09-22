@@ -4,36 +4,36 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.LoaderManager.LoaderCallbacks;
-import android.content.ContentResolver;
-import android.content.CursorLoader;
 import android.content.Intent;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
-
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.parse.LogInCallback;
+import com.parse.ParseException;
+import com.parse.ParseUser;
+import com.parse.SignUpCallback;
+
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.UpdateUserPositionService;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidationPattern;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidator;
 
 /**
  * A login screen that offers login via email/password.
+ *
+ * TODO: Create Password, Email and Username form field classes to simplify LoginActivity.
  */
-public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
+public class LoginActivity extends Activity {
 
     /**
      * A dummy authentication store containing known user names and passwords.
@@ -43,25 +43,32 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             "test@test:test",
             "bar@example.com:world"
     };
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+
+    private GoogleApiClient mGoogleApiClient;
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
+    private EditText mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (LittleBigBrother.USE_CACHED_USER) {
+            performCachedUserAction();
+        }
+
+        //performDebugModeActions();
+
+        Log.e(LittleBigBrother.Constants.LOG, "LoginActivity: GoogleApiClient creation.");
+
+        // Create GoogleApiClient object for use with the UpdateUserPositionService.
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
         // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        populateAutoComplete();
+        mEmailView = (EditText) findViewById(R.id.email);
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -75,11 +82,19 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             }
         });
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        Button mSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+        mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptLogin();
+            }
+        });
+
+        Button mRegisterButton = (Button) findViewById(R.id.email_register_button);
+        mRegisterButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                attemptRegistration();
             }
         });
 
@@ -87,49 +102,47 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         mProgressView = findViewById(R.id.login_progress);
     }
 
-    private void populateAutoComplete() {
-        getLoaderManager().initLoader(0, null, this);
+    private void performDebugModeActions() {
+        if (LittleBigBrother.DEBUG_MODE) {
+            String testUserEmail = "nicolai.agersbaek@gmail.com";
+
+            mEmailView.setText(testUserEmail);
+            mPasswordView.requestFocus();
+        }
     }
 
-
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (invalid email, missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
-    public void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
+    private void performCachedUserAction() {
+        ParseUser currentUser = ParseUser.getCurrentUser();
+        if (currentUser != null) {
+            loginSuccess();
         }
+    }
 
+    public boolean checkFields() {
         // Reset errors.
         mEmailView.setError(null);
         mPasswordView.setError(null);
-
-        // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
 
         // Check for a valid password, if the user entered one.
-        if (TextUtils.isEmpty(password)) {
+        if (isEmpty(mPasswordView)) {
             mPasswordView.setError(getString(R.string.error_field_required));
             focusView = mPasswordView;
             cancel = true;
-        } else if (!isPasswordValid(password)) {
+        } else if (!isPasswordValid()) {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
         }
 
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
+        if (isEmpty(mEmailView)) {
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!isEmailValid()) {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
             cancel = true;
@@ -139,24 +152,129 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             // There was an error; don't attempt login and focus the first
             // form field with an error.
             focusView.requestFocus();
+            return false;
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+            return true;
         }
     }
 
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
+    /**
+     * Attempts to sign in or register the account specified by the login form.
+     * If there are form errors (invalid email, missing fields, etc.), the
+     * errors are presented and no actual login attempt is made.
+     */
+    public void attemptLogin() {
+        if (checkFields()) {
+            String email = mEmailView.getText().toString();
+            String password = mPasswordView.getText().toString();
+
+            // Show a progress spinner, and kick off a background task to
+            // perform the user login attempt.
+            signInInBackground(email, password);
+        }
     }
 
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 0;
+    public void attemptRegistration() {
+        if (checkFields()) {
+            String email = mEmailView.getText().toString();
+            String password = mPasswordView.getText().toString();
+
+            // Show a progress spinner, and kick off a background task to
+            // perform the user login attempt.
+            registerInBackground(email, password);
+        }
     }
+
+    private void signInInBackground(String email, String password) {
+        ParseUser.logInInBackground(email, password, new LogInCallback() {
+            public void done(ParseUser user, ParseException e) {
+                if (user != null) {
+                    // Hooray! The user is logged in.
+                    loginSuccess();
+                } else {
+                    // Signup failed. Look at the ParseException to see what happened.
+                    Log.e(LittleBigBrother.Constants.LOG, "Signup failed. Error code: " + e.getCode());
+
+                    // Hide progress spinner
+                    showProgress(false);
+
+                    switch (e.getCode()) {
+                        // Unregistrered user attempted to sign in
+                        case ParseException.OBJECT_NOT_FOUND:
+                            mEmailView.setError(getString(R.string.error_object_not_found));
+                            mEmailView.requestFocus();
+                    }
+                }
+            }
+        });
+    }
+
+    private void registerInBackground(String email, String password) {
+        ParseUser user = new ParseUser();
+        user.setUsername(email);
+        user.setPassword(password);
+
+        user.signUpInBackground(new SignUpCallback() {
+            public void done(ParseException e) {
+                if (e == null) {
+                    // Hooray! Let them use the app now.
+                    loginSuccess();
+                } else {
+                    // Sign up didn't succeed. Look at the ParseException
+                    // to figure out what went wrong
+
+                    // Hide progress spinner
+                    showProgress(false);
+
+                    switch (e.getCode()) {
+                        case ParseException.USERNAME_TAKEN:
+                            mEmailView.setError(getString(R.string.error_email_taken));
+                            mEmailView.requestFocus();
+                        default:
+                            Log.e(LittleBigBrother.Constants.LOG, "Login failed. Error code: " + e.getCode());
+                    }
+                }
+            }
+        });
+    }
+
+    private boolean isEmailValid() {
+        return isValid(mEmailView, InputValidationPattern.EMAIL);
+    }
+
+    private boolean isPasswordValid() {
+        return isValid(mPasswordView, InputValidationPattern.PASSWORD);
+    }
+
+    private boolean isValid(TextView view, InputValidationPattern pattern) {
+        String input = view.getText().toString();
+
+        return InputValidator.validate(input, pattern.pattern);
+    }
+
+    private boolean isEmpty(TextView view) {
+        String input = view.getText().toString();
+
+        return TextUtils.isEmpty(input);
+    }
+
+
+    private void startRequestingUserLocationUpdates() {
+        // Create Intent for starting user-position update service
+        Intent intent = new Intent(this, UpdateUserPositionService.class);
+        startService(intent);
+    }
+
+    private void sendUserLoginSuccessMessage() {
+        // TODO: Refactor - should simply call static method from ApplicationController class, to notify controller of login success.
+        // This is possible since life-cycle of LoginActivity is subset of controller's.
+        Intent intent = new Intent(LittleBigBrother.Events.USER_LOGIN_SUCCESS);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
 
     /**
      * Shows the progress UI and hides the login form.
@@ -194,119 +312,22 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         }
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return new CursorLoader(this,
-                // Retrieve data rows for the device user's 'profile' contact.
-                Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI,
-                        ContactsContract.Contacts.Data.CONTENT_DIRECTORY), ProfileQuery.PROJECTION,
+    public void loginSuccess() {
+        sendUserLoginSuccessMessage();
 
-                // Select only email addresses.
-                ContactsContract.Contacts.Data.MIMETYPE +
-                        " = ?", new String[]{ContactsContract.CommonDataKinds.Email
-                .CONTENT_ITEM_TYPE},
+        // Hide progress spinner
+        //showProgress(false);
 
-                // Show primary email addresses first. Note that there won't be
-                // a primary email address if the user hasn't specified one.
-                ContactsContract.Contacts.Data.IS_PRIMARY + " DESC");
+        //Log.e(LittleBigBrother.Constants.LOG, "LoginActivity: Requesting user location updates.");
+        //startRequestingUserLocationUpdates();
+        redirect();
     }
 
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        List<String> emails = new ArrayList<String>();
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            emails.add(cursor.getString(ProfileQuery.ADDRESS));
-            cursor.moveToNext();
-        }
-
-        addEmailsToAutoComplete(emails);
+    public void redirect() {
+        startMapsActivity();
     }
 
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
-    }
-
-    private interface ProfileQuery {
-        String[] PROJECTION = {
-                ContactsContract.CommonDataKinds.Email.ADDRESS,
-                ContactsContract.CommonDataKinds.Email.IS_PRIMARY,
-        };
-
-        int ADDRESS = 0;
-        int IS_PRIMARY = 1;
-    }
-
-
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<String>(LoginActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }
-
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                startMapsAcitivity();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
-
-
-    public void startMapsAcitivity() {
+    public void startMapsActivity() {
         Intent intent = new Intent(this, MapsActivity.class);
 
         startActivity(intent);
