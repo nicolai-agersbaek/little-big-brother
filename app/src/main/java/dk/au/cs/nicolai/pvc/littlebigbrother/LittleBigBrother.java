@@ -3,6 +3,7 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.parse.Parse;
 import com.parse.ParseCrashReporting;
 import com.parse.ParseException;
@@ -14,11 +15,16 @@ import com.parse.ParseException;
  */
 public class LittleBigBrother {
     public static final String ID_PREFIX = "dk.au.cs.nicolai.pvc.littlebigbrother";
+    private static final String EVENT_NAME_SUFFIX_SEPARATOR = ":";
+
     public static final float DEFAULT_ZOOM_LEVEL = 14;
+    public static final float DEFAULT_USER_SELF_MARKER_HUE = BitmapDescriptorFactory.HUE_BLUE;
+    public static final float DEFAULT_USER_OTHER_MARKER_HUE = BitmapDescriptorFactory.HUE_YELLOW;
+    public static final float DEFAULT_REMINDER_MARKER_HUE = BitmapDescriptorFactory.HUE_RED;
 
     public static final long UPDATE_POSITION_FASTEST_INTERVAL = 5 * 1000;
     public static final long UPDATE_USER_POSITION_INTERVAL = 20 * 1000;
-    public static final long FETCH_USER_POSITION_INTERVAL = 60 * 1000;
+    public static final long FETCH_USER_POSITION_INTERVAL = 20 * 1000;
 
     public static final String UPDATE_USER_POSITION_SERVICE_NAME = ID_PREFIX + ":" + "UPDATE_USER_POSITION_SERVICE";
 
@@ -38,16 +44,20 @@ public class LittleBigBrother {
     }
 
     public interface Events {
-        String GOOGLE_API_CLIENT_CONNECTED = ID_PREFIX + ":" + "GOOGLE_API_CLIENT_CONNECTED";
-        String USER_LOGIN_SUCCESS = ID_PREFIX + ":" + "USER_LOGIN_SUCCESS";
+        String GOOGLE_API_CLIENT_CONNECTED = buildEventName("GOOGLE_API_CLIENT_CONNECTED");
+        String USER_LOGIN_SUCCESS = buildEventName("USER_LOGIN_SUCCESS");
     }
 
-
+    // Register custom ParseObject subclasses
     static {
         //ParseObject.registerSubclass(User.class);
     }
 
     private LittleBigBrother() {}
+
+    private static String buildEventName(String id) {
+        return ID_PREFIX + EVENT_NAME_SUFFIX_SEPARATOR + id;
+    }
 
     /**
      * <p>Initializes the Parse database using the given context.</p>
@@ -70,6 +80,8 @@ public class LittleBigBrother {
         public abstract void usernameOrPasswordIsInvalid();
         public abstract void error(ParseException e);
     }
+
+
 
     /**
      * <p>Constants used for identifying message types used for interfacing between activities in

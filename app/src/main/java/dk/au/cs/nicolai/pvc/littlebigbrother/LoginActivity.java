@@ -313,7 +313,8 @@ public class LoginActivity extends Activity {
     }
 
     public void loginSuccess() {
-        sendUserLoginSuccessMessage();
+        ApplicationController AC = (ApplicationController) getApplicationContext();
+        AC.userLoginSuccessNotification();
 
         // Hide progress spinner
         //showProgress(false);
