@@ -4,7 +4,6 @@ import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -15,6 +14,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 // TODO: Consider using Map padding when using the Maps activity to edit/create Reminder locations.
 // TODO: Handle when user minimizes application (think it's the onStop() event callback)
@@ -63,11 +66,7 @@ public class MapsActivity extends FragmentActivity
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApiIfAvailable(LocationServices.API)
-                .build();
+        mGoogleApiClient = GoogleApiClientFactory.LocationServices.build(this);
     }
 
     @Override
@@ -116,7 +115,7 @@ public class MapsActivity extends FragmentActivity
      * @param connectionHint
      */
     public void onConnected(Bundle connectionHint) {
-        Log.e(LittleBigBrother.Constants.LOG, "MapsActivity: GoogleApiClient: onConnected.");
+        Log.debug(this, "GoogleApiClient: onConnected.");
 
         // Get last known user Location object from API.
         Location userLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
@@ -129,7 +128,7 @@ public class MapsActivity extends FragmentActivity
                 .build();
 
         String username = ParseUser.getCurrentUser().getUsername();
-        addOrUpdateUserLocationMarker(username, userPosition);
+        addOrUpdateUserLocationMarker(username, userPosition, LittleBigBrother.DEFAULT_USER_SELF_MARKER_HUE);
 
         mMap.moveCamera(CameraUpdateFactory.newCameraPosition(currentCameraPosition));
 
@@ -182,7 +181,10 @@ public class MapsActivity extends FragmentActivity
      * @param userPosition
      */
     private void addOrUpdateUserLocationMarker(String username, LatLng userPosition) {
-        Marker userLocationMarker = mMap.addMarker(new MarkerOptions().position(userPosition).title(username));
+        Marker userLocationMarker = mMap.addMarker(new MarkerOptions()
+                .position(userPosition)
+                .title(username)
+                .icon(BitmapDescriptorFactory.defaultMarker(LittleBigBrother.DEFAULT_USER_OTHER_MARKER_HUE)));
         if (userMapMarkers.containsKey(username)) {
             userMapMarkers.get(username).remove();
         }
@@ -190,22 +192,41 @@ public class MapsActivity extends FragmentActivity
         userMapMarkers.put(username, userLocationMarker);
     }
 
+    private void addOrUpdateUserLocationMarker(String username, LatLng userPosition, float hue) {
+        Marker userLocationMarker = mMap.addMarker(new MarkerOptions()
+                .position(userPosition)
+                .title(username)
+                .icon(BitmapDescriptorFactory.defaultMarker(hue)));
+        if (userMapMarkers.containsKey(username)) {
+            userMapMarkers.get(username).remove();
+        }
+
+        userMapMarkers.put(username, userLocationMarker);
+    }
+
+
+
     private void addOrUpdateUserLocationMarker(String username, ParseGeoPoint point) {
         LatLng userPosition = new LatLng(point.getLatitude(), point.getLongitude());
         addOrUpdateUserLocationMarker(username, userPosition);
     }
 
     private void getUserPositionsFromDatabase() {
+        Log.debug(this, "Fetching user positions from database.");
+
+        ParseUser user = ParseUser.getCurrentUser();
+
         // Get (username, position)-pairs from the server and add to userPositionsMap
         ParseQuery<ParseObject> query = ParseQuery.getQuery("_User");
         query.whereExists("position");
+        query.whereNotEqualTo("username", user.getUsername());
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(final List<ParseObject> userList, ParseException e) {
                 if (e == null) {
                     // Return the map to the onPostExecute method
                     updateUserPositionsFromDatabaseData(userList);
                 } else {
-                    Log.d("userPositionFetch", "Error: " + e.getMessage());
+                    Log.error(this, "Error: " + e.getMessage());
                 }
             }
         });
@@ -214,7 +235,7 @@ public class MapsActivity extends FragmentActivity
     private void updateUserPositionsFromDatabaseData(List<ParseObject> userList) {
         for (ParseObject userObj : userList) {
             String username = userObj.getString("username");
-            ParseGeoPoint point = (ParseGeoPoint) userObj.get("position");
+            ParseGeoPoint point = (ParseGeoPoint) userObj.get(LittleBigBrother.Constants.DB.USER_POSITION_ATTRIBUTE);
             addOrUpdateUserLocationMarker(username, point);
         }
     }
