@@ -1,6 +1,7 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -40,12 +41,23 @@ public class LittleBigBrother {
 
         interface DB {
             String USER_POSITION_ATTRIBUTE = "position";
+            String USER_PAIRED_DEVICES_ATTRIBUTE = "pairedDevices";
         }
+    }
+
+    public interface DB {
+        String USER_NAME_ATTRIBUTE = "username";
+        String USER_POSITION_ATTRIBUTE = "position";
+        String USER_PAIRED_DEVICES_ATTRIBUTE = "pairedDevices";
     }
 
     public interface Events {
         String GOOGLE_API_CLIENT_CONNECTED = buildEventName("GOOGLE_API_CLIENT_CONNECTED");
         String USER_LOGIN_SUCCESS = buildEventName("USER_LOGIN_SUCCESS");
+    }
+
+    public interface Colors {
+        int HOLO_BLUE_LIGHT = Color.parseColor("#33b5e5");
     }
 
     // Register custom ParseObject subclasses
