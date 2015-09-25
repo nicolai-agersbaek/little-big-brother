@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wifi_getting_available_networks">Getting available networks&#8230;</string>
+
+
+    <string name="wifi_action_toggle_on">Toggle WiFi ON</string>
+    <string name="wifi_action_toggle_off">Toggle WiFi OFF</string>
+</resources>
