@@ -14,19 +14,13 @@ import java.util.ArrayList;
  */
 public final class NetworkListArrayAdapter extends ArrayAdapter<NetworkListItem> {
     private final Context context;
-    private final NetworkListItem[] networkListItems;
+    private final ArrayList<NetworkListItem> networks;
 
-    public NetworkListArrayAdapter(Context context, NetworkListItem[] networkListItems) {
-        super(context, R.layout.network_list_row, networkListItems);
-        this.context = context;
-        this.networkListItems = networkListItems;
-    }
-
-    public NetworkListArrayAdapter(Context context, ArrayList<NetworkListItem> networkListItemsArrayList) {
+    public NetworkListArrayAdapter(Context context, ArrayList<NetworkListItem> networks) {
         super(context, R.layout.network_list_row,
-                networkListItemsArrayList.toArray(new NetworkListItem[networkListItemsArrayList.size()]));
+                networks);
         this.context = context;
-        this.networkListItems = networkListItemsArrayList.toArray(new NetworkListItem[networkListItemsArrayList.size()]);
+        this.networks = networks;
     }
 
     @Override
@@ -40,8 +34,8 @@ public final class NetworkListArrayAdapter extends ArrayAdapter<NetworkListItem>
         TextView networkNameTextView = (TextView) rowView.findViewById(R.id.network_name);
         TextView pairedUsernameTextView = (TextView) rowView.findViewById(R.id.paired_user);
 
-        networkNameTextView.setText(networkListItems[position].getNetworkName());
-        pairedUsernameTextView.setText(networkListItems[position].getPairedUsername());
+        networkNameTextView.setText(networks.get(position).getNetworkName());
+        pairedUsernameTextView.setText(networks.get(position).getPairedUsername());
 
         return rowView;
     }
