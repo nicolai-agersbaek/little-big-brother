@@ -2,7 +2,9 @@
 <resources>
     <string name="wifi_getting_available_networks">Getting available networks&#8230;</string>
 
-
     <string name="wifi_action_toggle_on">Toggle WiFi ON</string>
     <string name="wifi_action_toggle_off">Toggle WiFi OFF</string>
+
+    <string name="wifi_action_pair_device">PAIR</string>
+    <string name="wifi_action_un-pair_device">UN-PAIR</string>
 </resources>
