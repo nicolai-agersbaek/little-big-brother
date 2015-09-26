@@ -7,7 +7,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -24,7 +23,6 @@ import com.parse.ParseException;
 import com.parse.ParseUser;
 import com.parse.SignUpCallback;
 
-import dk.au.cs.nicolai.pvc.littlebigbrother.database.UpdateUserPositionService;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidationPattern;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidator;
 
@@ -100,15 +98,6 @@ public class LoginActivity extends Activity {
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
-    }
-
-    private void performDebugModeActions() {
-        if (LittleBigBrother.DEBUG_MODE) {
-            String testUserEmail = "nicolai.agersbaek@gmail.com";
-
-            mEmailView.setText(testUserEmail);
-            mPasswordView.requestFocus();
-        }
     }
 
     private void performCachedUserAction() {
@@ -261,29 +250,11 @@ public class LoginActivity extends Activity {
         return TextUtils.isEmpty(input);
     }
 
-
-    private void startRequestingUserLocationUpdates() {
-        // Create Intent for starting user-position update service
-        Intent intent = new Intent(this, UpdateUserPositionService.class);
-        startService(intent);
-    }
-
-    private void sendUserLoginSuccessMessage() {
-        // TODO: Refactor - should simply call static method from ApplicationController class, to notify controller of login success.
-        // This is possible since life-cycle of LoginActivity is subset of controller's.
-        Intent intent = new Intent(LittleBigBrother.Events.USER_LOGIN_SUCCESS);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    }
-
-
     /**
      * Shows the progress UI and hides the login form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     public void showProgress(final boolean show) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
@@ -325,7 +296,13 @@ public class LoginActivity extends Activity {
     }
 
     public void redirect() {
-        startMapsActivity();
+        startWifiActivity();
+    }
+
+    public void startWifiActivity() {
+        Intent intent = new Intent(this, WifiActivity.class);
+
+        startActivity(intent);
     }
 
     public void startMapsActivity() {
