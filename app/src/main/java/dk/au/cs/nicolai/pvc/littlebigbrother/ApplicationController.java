@@ -1,10 +1,14 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
-
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.annotation.TargetApi;
 import android.app.Application;
+import android.content.Context;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -17,7 +21,10 @@ import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseUser;
 
+import java.util.List;
+
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
  * Created by nicolai on 9/22/15.
@@ -118,5 +125,42 @@ public class ApplicationController extends Application
         ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
         user.put(LittleBigBrother.Constants.DB.USER_POSITION_ATTRIBUTE, point);
         user.saveInBackground();
+    }
+
+    /**
+     * Shows the progress UI and hides given Views.
+     */
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    public void animatedShowView(Context context, final boolean show, final View view) {
+        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
+        // for very easy animations. If available, use these APIs to fade-in
+        // the progress spinner.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            int shortAnimTime = context.getResources().getInteger(android.R.integer.config_shortAnimTime);
+
+            view.setVisibility(show ? View.VISIBLE : View.GONE);
+            view.animate().setDuration(shortAnimTime).alpha(
+                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    view.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+            });
+        } else {
+            // The ViewPropertyAnimator APIs are not available, so simply show
+            // and hide the relevant UI components.
+            view.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /**
+     * Shows the progress UI and hides given Views.
+     */
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    public void animatedShowView(Context context, final boolean show, List<View> views) {
+        for (final View view :
+                views) {
+            animatedShowView(context, show, view);
+        }
     }
 }
