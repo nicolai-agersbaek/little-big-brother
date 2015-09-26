@@ -299,7 +299,13 @@ public class LoginActivity extends Activity {
     }
 
     public void redirect() {
-        startMapsActivity();
+        startWifiActivity();
+    }
+
+    public void startWifiActivity() {
+        Intent intent = new Intent(this, WifiActivity.class);
+
+        startActivity(intent);
     }
 
     public void startMapsActivity() {

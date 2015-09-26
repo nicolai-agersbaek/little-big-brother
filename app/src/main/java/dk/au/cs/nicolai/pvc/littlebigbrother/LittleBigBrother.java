@@ -30,7 +30,7 @@ public class LittleBigBrother {
     public static final String UPDATE_USER_POSITION_SERVICE_NAME = ID_PREFIX + ":" + "UPDATE_USER_POSITION_SERVICE";
 
     public static final boolean DEBUG_MODE = true;
-    public static final boolean USE_CACHED_USER = false;
+    public static final boolean USE_CACHED_USER = true;
 
     private static final String PARSE_APPLICATION_ID = "QbrGLBCIPI7lRRX4p3Hn66xP1hjkO49gRfJhfVN5";
     private static final String PARSE_CLIENT_KEY = "L1AKtlEN8UIqoypKJmpiETyV4iijHFySExLajbql";
@@ -54,6 +54,11 @@ public class LittleBigBrother {
     public interface Events {
         String GOOGLE_API_CLIENT_CONNECTED = buildEventName("GOOGLE_API_CLIENT_CONNECTED");
         String USER_LOGIN_SUCCESS = buildEventName("USER_LOGIN_SUCCESS");
+
+        interface Wifi {
+            String UNPAIRING_SUCCESSFUL = buildEventName("UNPAIRING_SUCCESSFUL");
+            String PAIRING_SUCCESSFUL = buildEventName("PAIRING_SUCCESSFUL");
+        }
     }
 
     public interface Colors {
