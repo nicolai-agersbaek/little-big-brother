@@ -3,12 +3,11 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -17,7 +16,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.parse.LogInCallback;
 import com.parse.ParseException;
 import com.parse.ParseUser;
@@ -25,25 +23,12 @@ import com.parse.SignUpCallback;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidationPattern;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.InputValidator;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
- * A login screen that offers login via email/password.
- *
- * TODO: Create Password, Email and Username form field classes to simplify LoginActivity.
+ * A login screen that offers login/registration via email/password.
  */
-public class LoginActivity extends Activity {
-
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "test@test:test",
-            "bar@example.com:world"
-    };
-
-    private GoogleApiClient mGoogleApiClient;
-
+public class LoginActivity extends AppCompatActivity {
     // UI references.
     private EditText mEmailView;
     private EditText mPasswordView;
@@ -52,18 +37,10 @@ public class LoginActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (LittleBigBrother.USE_CACHED_USER) {
-            performCachedUserAction();
-        }
-
-        //performDebugModeActions();
-
-        Log.e(LittleBigBrother.Constants.LOG, "LoginActivity: GoogleApiClient creation.");
-
-        // Create GoogleApiClient object for use with the UpdateUserPositionService.
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        performCachedUserAction();
 
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
@@ -96,14 +73,18 @@ public class LoginActivity extends Activity {
             }
         });
 
+
+
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
 
     private void performCachedUserAction() {
-        ParseUser currentUser = ParseUser.getCurrentUser();
-        if (currentUser != null) {
-            loginSuccess();
+        if (LittleBigBrother.USE_CACHED_USER) {
+            ParseUser currentUser = ParseUser.getCurrentUser();
+            if (currentUser != null) {
+                loginSuccess();
+            }
         }
     }
 
@@ -185,7 +166,7 @@ public class LoginActivity extends Activity {
                     loginSuccess();
                 } else {
                     // Signup failed. Look at the ParseException to see what happened.
-                    Log.e(LittleBigBrother.Constants.LOG, "Signup failed. Error code: " + e.getCode());
+                    Log.error(this, "Signup failed. Error code: " + e.getCode());
 
                     // Hide progress spinner
                     showProgress(false);
@@ -223,7 +204,7 @@ public class LoginActivity extends Activity {
                             mEmailView.setError(getString(R.string.error_email_taken));
                             mEmailView.requestFocus();
                         default:
-                            Log.e(LittleBigBrother.Constants.LOG, "Login failed. Error code: " + e.getCode());
+                            Log.exception(this, "Login failed", e);
                     }
                 }
             }
@@ -290,7 +271,7 @@ public class LoginActivity extends Activity {
         // Hide progress spinner
         //showProgress(false);
 
-        //Log.e(LittleBigBrother.Constants.LOG, "LoginActivity: Requesting user location updates.");
+        //Log.e("Requesting user location updates.");
         //startRequestingUserLocationUpdates();
         redirect();
     }

@@ -3,8 +3,10 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,12 +19,19 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.parse.FindCallback;
+import com.parse.LogOutCallback;
+import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
 import com.parse.ParseUser;
 
 import java.util.List;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.UserListResultCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.ApplicationDrawerItem;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.ApplicationDrawerItemOnClickedCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
@@ -40,6 +49,58 @@ public class ApplicationController extends Application
 
     private boolean googleApiClientConnected = false;
     private boolean userLoginSucceeded = false;
+
+    public interface DrawerItem {
+        // Map
+        ApplicationDrawerItem MAP = ApplicationDrawerItem.MAP(new ApplicationDrawerItemOnClickedCallback() {
+            @Override
+            public void onClicked(Activity activity) {
+                Intent intent = new Intent(activity, MapsActivity.class);
+                activity.startActivity(intent);
+            }
+        });
+
+        // WiFi
+        ApplicationDrawerItem WIFI = ApplicationDrawerItem.WIFI(new ApplicationDrawerItemOnClickedCallback() {
+            @Override
+            public void onClicked(Activity activity) {
+                Intent intent = new Intent(activity, WifiActivity.class);
+                activity.startActivity(intent);
+            }
+        });
+
+        // Reminders
+        ApplicationDrawerItem REMINDERS = ApplicationDrawerItem.REMINDERS(new ApplicationDrawerItemOnClickedCallback() {
+            @Override
+            public void onClicked(Activity activity) {
+                //throw new UnsupportedOperationException("RemindersActivity not yet implemented.");
+                //Intent intent = new Intent(activity, MapsActivity.class);
+                //activity.startActivity(intent);
+            }
+        });
+
+        // Sign out
+        ApplicationDrawerItem LOGOUT = ApplicationDrawerItem.LOGOUT(new ApplicationDrawerItemOnClickedCallback() {
+            @Override
+            public void onClicked(final Activity activity) {
+                ParseUser.logOutInBackground(new LogOutCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if (e == null) {
+                            // Logged out successfully
+                            Intent intent = new Intent(activity, LoginActivity.class);
+                            activity.startActivity(intent);
+                        } else {
+                            Log.exception(activity, "Logout failed", e);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+
 
     @Override
     public void onCreate() {
@@ -162,5 +223,20 @@ public class ApplicationController extends Application
                 views) {
             animatedShowView(context, show, view);
         }
+    }
+
+    public static void getUserListFromDatabase(final UserListResultCallback callback) {
+        // Get list of users from database
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("_User");
+        query.findInBackground(new FindCallback<ParseObject>() {
+            public void done(final List<ParseObject> userList, ParseException e) {
+                if (e == null) {
+                    callback.success(userList);
+                } else {
+                    Log.exception(this, e);
+                    callback.error(e);
+                }
+            }
+        });
     }
 }
