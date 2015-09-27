@@ -68,7 +68,11 @@ public class MapsActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        ActivityDrawer.build(this);
+        mDrawer = ActivityDrawer.build(this);
+
+        if (mDrawer != null) {
+            mDrawer.setSelection(ApplicationController.DrawerPosition.MAP);
+        }
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
 
@@ -111,6 +115,7 @@ public class MapsActivity extends AppCompatActivity
 
     @Override
     protected void onStop() {
+        stopUpdateUserPositionsTimer();
         mGoogleApiClient.disconnect();
         super.onStop();
     }
@@ -222,20 +227,22 @@ public class MapsActivity extends AppCompatActivity
 
         ParseUser user = ParseUser.getCurrentUser();
 
-        // Get (username, position)-pairs from the server and add to userPositionsMap
-        ParseQuery<ParseObject> query = ParseQuery.getQuery("_User");
-        query.whereExists("position");
-        query.whereNotEqualTo("username", user.getUsername());
-        query.findInBackground(new FindCallback<ParseObject>() {
-            public void done(final List<ParseObject> userList, ParseException e) {
-                if (e == null) {
-                    // Return the map to the onPostExecute method
-                    updateUserPositionsFromDatabaseData(userList);
-                } else {
-                    Log.error(this, "Error: " + e.getMessage());
+        if (user != null) {
+            // Get (username, position)-pairs from the server and add to userPositionsMap
+            ParseQuery<ParseObject> query = ParseQuery.getQuery("_User");
+            query.whereExists("position");
+            query.whereNotEqualTo("username", user.getUsername());
+            query.findInBackground(new FindCallback<ParseObject>() {
+                public void done(final List<ParseObject> userList, ParseException e) {
+                    if (e == null) {
+                        // Return the map to the onPostExecute method
+                        updateUserPositionsFromDatabaseData(userList);
+                    } else {
+                        Log.error(this, "Error: " + e.getMessage());
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     private void updateUserPositionsFromDatabaseData(List<ParseObject> userList) {

@@ -46,11 +46,10 @@ public class ActivityDrawer {
                     public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
                         ApplicationDrawerItem item = (ApplicationDrawerItem) drawerItem;
 
-                        Log.debug(this, "Clicked ApplicationDrawerItem: " + item.type);
-
-
-
-                        item.onClicked(activity);
+                        if (item != null) {
+                            Log.debug(this, "Clicked ApplicationDrawerItem: " + item.type);
+                            item.onClicked(activity);
+                        }
 
                         return true;
                     }

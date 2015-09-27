@@ -99,6 +99,13 @@ public class ApplicationController extends Application
         });
     }
 
+    public interface DrawerPosition {
+        int MAP = 0;
+        int WIFI = 1;
+        int REMINDERS = 2;
+        int LOGOUT = 3;
+    }
+
 
 
 
@@ -183,9 +190,11 @@ public class ApplicationController extends Application
         // Push information to database
         ParseObject user = ParseUser.getCurrentUser();
 
-        ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
-        user.put(LittleBigBrother.Constants.DB.USER_POSITION_ATTRIBUTE, point);
-        user.saveInBackground();
+        if (user != null) {
+            ParseGeoPoint point = new ParseGeoPoint(location.getLatitude(), location.getLongitude());
+            user.put(LittleBigBrother.Constants.DB.USER_POSITION_ATTRIBUTE, point);
+            user.saveInBackground();
+        }
     }
 
     /**

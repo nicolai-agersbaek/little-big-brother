@@ -16,7 +16,7 @@ public class ApplicationDrawerItem extends PrimaryDrawerItem {
     private final ApplicationDrawerItemOnClickedCallback callback;
 
     private enum ITEM_TYPE {
-        MAP, WIFI, REMINDERS, LOGOUT
+        MAP, WIFI, REMINDERS, LOGOUT, NONE
     }
 
     private ApplicationDrawerItem(int nameResId, GoogleMaterial.Icon icon, ITEM_TYPE type, ApplicationDrawerItemOnClickedCallback callback) {
@@ -28,6 +28,12 @@ public class ApplicationDrawerItem extends PrimaryDrawerItem {
     private ApplicationDrawerItem(int nameResId, ITEM_TYPE type, ApplicationDrawerItemOnClickedCallback callback) {
         super.withName(nameResId);
         this.type = type;
+        this.callback = callback;
+    }
+
+    public ApplicationDrawerItem(int nameResId, ApplicationDrawerItemOnClickedCallback callback) {
+        super.withName(nameResId);
+        this.type = ITEM_TYPE.NONE;
         this.callback = callback;
     }
 
