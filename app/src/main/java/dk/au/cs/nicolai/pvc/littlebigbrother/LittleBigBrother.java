@@ -7,7 +7,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.parse.Parse;
 import com.parse.ParseCrashReporting;
 import com.parse.ParseException;
+import com.parse.ParseObject;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.Reminder;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
@@ -68,7 +70,7 @@ public class LittleBigBrother {
 
     // Register custom ParseObject subclasses
     static {
-        //ParseObject.registerSubclass(User.class);
+        ParseObject.registerSubclass(Reminder.class);
     }
 
     private LittleBigBrother() {}
