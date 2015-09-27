@@ -3,7 +3,7 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AppCompatActivity;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -19,6 +19,7 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.mikepenz.materialdrawer.Drawer;
 import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
@@ -33,12 +34,13 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.ActivityDrawer;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 // TODO: Consider using Map padding when using the Maps activity to edit/create Reminder locations.
 // TODO: Handle when user minimizes application (think it's the onStop() event callback)
-public class MapsActivity extends FragmentActivity
+public class MapsActivity extends AppCompatActivity
     implements OnMapReadyCallback, ConnectionCallbacks, OnConnectionFailedListener{
 
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
@@ -56,6 +58,8 @@ public class MapsActivity extends FragmentActivity
     // Bool to track whether the app is already resolving an error
     private boolean mResolvingError = false;
 
+    private Drawer mDrawer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,6 +67,8 @@ public class MapsActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        ActivityDrawer.build(this);
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
 

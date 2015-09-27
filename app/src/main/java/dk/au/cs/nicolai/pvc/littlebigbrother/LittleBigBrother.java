@@ -2,12 +2,13 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.util.Log;
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.parse.Parse;
 import com.parse.ParseCrashReporting;
 import com.parse.ParseException;
+
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
  * <p>Main class for methods and constants specific to the Little Big Brother application.</p>
@@ -82,7 +83,7 @@ public class LittleBigBrother {
      * @param context context to use for initialization
      */
     public static void initParseDB(Context context) {
-        Log.e(Constants.LOG, "LittleBigBrother: Initializing database.");
+        Log.debug(LittleBigBrother.class, "Initializing database.");
 
         Parse.enableLocalDatastore(context);
 
