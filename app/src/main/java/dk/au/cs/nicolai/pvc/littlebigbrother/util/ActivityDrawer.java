@@ -10,6 +10,7 @@ import com.mikepenz.materialdrawer.model.interfaces.IDrawerItem;
 import com.parse.ParseUser;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.ApplicationController;
+import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
 
 /**
  * Created by Nicolai on 27-09-2015.
@@ -19,14 +20,17 @@ public class ActivityDrawer {
     private ActivityDrawer() {}
 
     public static Drawer build(AppCompatActivity activity) {
-        // Only build Drawer if user is logged in
-        if (ParseUser.getCurrentUser() != null) {
-            // User is logged in, we can show the Drawer
-            return buildDrawer(activity);
-        } else {
-            // User is NOT logged in, do not show a Drawer
-            return null;
+        boolean buildDrawer = true;
+
+        if (LittleBigBrother.DRAWER_ONLY_SHOW_FOR_USERS) {
+            // Only build Drawer if user is logged in
+            if (ParseUser.getCurrentUser() == null) {
+                // User is not logged in, we can't show the Drawer
+                buildDrawer = false;
+            }
         }
+
+        return (buildDrawer ? buildDrawer(activity) : null);
     }
 
     private static Drawer buildDrawer(final AppCompatActivity activity) {

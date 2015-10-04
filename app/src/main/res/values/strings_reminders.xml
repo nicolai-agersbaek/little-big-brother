@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="prompt_reminderTitle">Title</string>
+    <string name="prompt_reminderDescription">Description (optional)</string>
+    <string name="prompt_selectType">Select type</string>
+
+    <string name="prompt_selectType_Location">Location</string>
+    <string name="prompt_selectType_TargetUser">Target user</string>
+    <string name="prompt_selectType_DateTime">Date &amp; Time</string>
+
+    <string name="prompt_selectLocation">Location</string>
+    <string name="prompt_selectUser">User</string>
+    <string name="prompt_selectDate">Date</string>
+    <string name="prompt_selectTime">Time</string>
+
+    <string name="prompt_selectExpiration_Date_default">Never</string>
+    <string name="prompt_selectExpiration_Time_default">00:00</string>
+    <string name="prompt_expirationON">Expiration ENABLED</string>
+    <string name="prompt_expirationOFF">Expiration DISABLED</string>
+
+    <string name="reminderRadius">Radius</string>
+    <string name="reminderExpiration">Expiration</string>
+
+    <!-- Save changes / Create new -->
+    <string name="action_saveChanges">Save changes</string>
+    <string name="action_createReminder">Create reminder</string>
+
+    <!-- Progress -->
+    <string name="progress_savingChanges">Saving changes</string>
+    <string name="progress_creatingReminder">Creating reminder</string>
+
+    <!-- Options menu -->
+    <string name="action_addReminder">Add Reminder</string>
+</resources>

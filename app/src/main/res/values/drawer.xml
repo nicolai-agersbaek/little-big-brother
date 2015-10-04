@@ -4,5 +4,4 @@
     <string name="drawer_item_wifi">WiFi</string>
     <string name="drawer_item_reminders">Reminders</string>
     <string name="drawer_item_logout">Sign out</string>
-    <string name="drawer_item_exit">Exit</string>
 </resources>

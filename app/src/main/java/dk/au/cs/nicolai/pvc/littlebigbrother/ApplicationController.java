@@ -7,7 +7,6 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -38,17 +37,19 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 /**
  * Created by nicolai on 9/22/15.
  */
-public class ApplicationController extends Application
+public final class ApplicationController extends Application
         implements ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
 
-    private static boolean mRequestingLocationUpdates = false;
+
     private static GoogleApiClient mGoogleApiClient;
 
     private LocationRequest mLocationRequest;
+
+    private boolean mRequestingLocationUpdates;
     private boolean mLocationUpdateRequestStarted;
 
-    private boolean googleApiClientConnected = false;
-    private boolean userLoginSucceeded = false;
+    private boolean isGoogleApiClientConnected = false;
+    private boolean hasUserLoginSucceeded = false;
 
     public interface DrawerItem {
         // Map
@@ -106,16 +107,15 @@ public class ApplicationController extends Application
         int LOGOUT = 3;
     }
 
-
-
-
     @Override
     public void onCreate() {
         super.onCreate();
 
         // Application-wide initialization here
 
-        makeLocationRequest();
+        // Location request
+        mRequestingLocationUpdates = LittleBigBrother.Settings.REQUEST_LOCATION_UPDATES;
+        makeLocationRequestWithApplicationDefaultSettings();
 
         // Initialize Parse database
         LittleBigBrother.initParseDB(this);
@@ -125,54 +125,45 @@ public class ApplicationController extends Application
         mGoogleApiClient.connect();
     }
 
-    public static boolean isRequestingLocationUpdates() {
+    public boolean isRequestingLocationUpdates() {
         return mRequestingLocationUpdates;
     }
 
-    public static void setRequestingLocationUpdates(boolean requestingLocationUpdates) {
-        mRequestingLocationUpdates = requestingLocationUpdates;
+    protected boolean hasUserLoginSucceeded() {
+        return hasUserLoginSucceeded;
+    }
+
+    protected boolean isGoogleApiClientConnected() {
+        return isGoogleApiClientConnected;
+    }
+
+    public void userLoginSuccessNotification() {
+        hasUserLoginSucceeded = true;
+        startLocationUpdates();
     }
 
     public static GoogleApiClient getGoogleApiClient() {
         return mGoogleApiClient;
     }
 
-    @Override
-    public void onConnected(Bundle bundle) {
-        Log.debug(this, "GoogleApiClient connected successfully.");
-        googleApiClientConnected = true;
-        startLocationUpdates();
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-        Log.debug(this, "GoogleApiClient: onConnectionSuspended.");
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.debug(this, "GoogleApiClient: onConnectionFailed.");
-    }
-
-    public void userLoginSuccessNotification() {
-        userLoginSucceeded = true;
-        startLocationUpdates();
-    }
-
     private void startLocationUpdates() {
-        if (userLoginSucceeded & googleApiClientConnected & !mLocationUpdateRequestStarted) {
-            Log.debug(this, "Starting location updates.");
+        if (hasUserLoginSucceeded()
+                & isGoogleApiClientConnected()
+                & mRequestingLocationUpdates
+                & !mLocationUpdateRequestStarted) {
+            Log.info(this, "Starting location updates.");
 
-            mRequestingLocationUpdates = true;
+            // TODO: Use the PendingResult<Status> object returned to check isSuccess() or set a ResultCallback listener
+            //PendingResult<Status> pendingResult =  LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
 
             LocationServices.FusedLocationApi.requestLocationUpdates(
-                    mGoogleApiClient, mLocationRequest, this);
+                    getGoogleApiClient(), mLocationRequest, this);
 
             mLocationUpdateRequestStarted = true;
         }
     }
 
-    protected void makeLocationRequest() {
+    private void makeLocationRequestWithApplicationDefaultSettings() {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(LittleBigBrother.UPDATE_USER_POSITION_INTERVAL);
         mLocationRequest.setFastestInterval(LittleBigBrother.UPDATE_POSITION_FASTEST_INTERVAL);
@@ -180,12 +171,12 @@ public class ApplicationController extends Application
     }
 
     @Override
-    public void onLocationChanged(Location location) {
+    public void onLocationChanged(android.location.Location location) {
         saveUserLocationInBackground(location);
     }
 
-    public void saveUserLocationInBackground(Location location) {
-        Log.debug(this, "Pushing user location to database.");
+    public void saveUserLocationInBackground(android.location.Location location) {
+        Log.info(this, "Pushing user location to database.");
 
         // Push information to database
         ParseObject user = ParseUser.getCurrentUser();
@@ -197,11 +188,61 @@ public class ApplicationController extends Application
         }
     }
 
+    // TODO: Finish centralization of options menu behavior
+    public static class OptionsMenuHandler {
+
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        Log.debug(this, "GoogleApiClient connected successfully.");
+        isGoogleApiClientConnected = true;
+        startLocationUpdates();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.error(this, "GoogleApiClient: onConnectionSuspended.");
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.error(this, "GoogleApiClient: onConnectionFailed.");
+    }
+
+    public static void hideViews(View... views) {
+        for (View view :
+                views) {
+            hideView(view);
+        }
+    }
+
+    public static void showViews(View... views) {
+        for (View view :
+                views) {
+            showView(view);
+        }
+    }
+
+    public static void hideView(View view) {
+        view.setVisibility(View.GONE);
+    }
+
+    public static void showView(View view) {
+        view.setVisibility(View.VISIBLE);
+    }
+
+    public static void showView(View view, boolean show) {
+        view.setVisibility(
+                (show ? View.VISIBLE : View.GONE)
+        );
+    }
+
     /**
      * Shows the progress UI and hides given Views.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    public void animatedShowView(Context context, final boolean show, final View view) {
+    public static void animatedShowView(Context context, final boolean show, final View view) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
@@ -227,7 +268,15 @@ public class ApplicationController extends Application
      * Shows the progress UI and hides given Views.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    public void animatedShowView(Context context, final boolean show, List<View> views) {
+    public static void animatedShowViews(Context context, final boolean show, List<View> views) {
+        for (final View view :
+                views) {
+            animatedShowView(context, show, view);
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
+    public static void animatedShowViews(Context context, final boolean show, View... views) {
         for (final View view :
                 views) {
             animatedShowView(context, show, view);

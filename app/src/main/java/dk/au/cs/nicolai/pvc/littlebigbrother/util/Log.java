@@ -2,6 +2,8 @@ package dk.au.cs.nicolai.pvc.littlebigbrother.util;
 
 import com.parse.ParseException;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
+
 /**
  * Created by Nicolai on 22-09-2015.
  */
@@ -22,8 +24,9 @@ public final class Log {
     private Log() {}
 
     private static String buildLogMsg(Object source, String message) {
-        String sourceName = source.getClass().getName();
-        String msg = sourceName + CLASS_MESSAGE_SEPARATOR + " " + message;
+        String className = LittleBigBrother.getName(source);
+
+        String msg = className + CLASS_MESSAGE_SEPARATOR + " " + message;
 
         return msg;
     }

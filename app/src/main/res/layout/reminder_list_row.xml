@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="?android:attr/listPreferredItemHeight"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="6dip">
+
+    <TextView
+        android:id="@+id/reminderTitle"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:gravity="center_vertical"
+        android:text="Example application"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="30dip"
+        android:orientation="horizontal"
+        android:layout_below="@id/reminderTitle">
+
+        <com.mikepenz.iconics.view.IconicsImageView
+            android:id="@+id/reminderTypeIconView"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            app:iiv_color="@android:color/holo_blue_dark"
+            app:iiv_icon="gmd-favorite" />
+
+        <TextView
+            android:id="@+id/reminderTypeDetail"
+            android:layout_width="wrap_content"
+            android:layout_height="26dip"
+            android:ellipsize="marquee"
+            android:singleLine="true"
+            android:text="Description"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+
+
+    <TextView
+        android:id="@+id/reminderExpiresText"
+        android:layout_width="40dip"
+        android:layout_height="20dip"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:textAlignment="viewEnd"
+        android:singleLine="true"
+        android:text="3 d"
+        android:textSize="10sp" />
+
+</RelativeLayout>

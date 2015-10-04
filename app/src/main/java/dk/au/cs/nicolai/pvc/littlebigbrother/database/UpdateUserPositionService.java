@@ -35,8 +35,12 @@ public class UpdateUserPositionService extends IntentService implements Location
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        // TODO: Rewrite this ServiceIntent
+        boolean alwaysTrue = true;
+
         // Check to see if we are already requesting location updates
-        if (!ApplicationController.isRequestingLocationUpdates()) {
+        //if (!ApplicationController.isRequestingLocationUpdates()) {
+        if (!alwaysTrue) {
             // TODO: Can we start building the LocationRequest before OnConnected event?
 
             createLocationRequest();
@@ -67,7 +71,7 @@ public class UpdateUserPositionService extends IntentService implements Location
         if (!mLocationUpdateRequestStarted) {
             Log.d(LittleBigBrother.Constants.LOG, "Starting location updates.");
 
-            ApplicationController.setRequestingLocationUpdates(true);
+            //ApplicationController.setRequestingLocationUpdates(true);
 
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     ApplicationController.getGoogleApiClient(), mLocationRequest, this);
