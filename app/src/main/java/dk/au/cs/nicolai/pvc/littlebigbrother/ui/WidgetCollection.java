@@ -1,4 +1,4 @@
-package dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget;
+package dk.au.cs.nicolai.pvc.littlebigbrother.ui;
 
 import java.util.Arrays;
 import java.util.HashSet;

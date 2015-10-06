@@ -1,11 +1,11 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget;
 
 import android.app.Activity;
-import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
 
 /**
  * Created by Nicolai on 06-10-2015.
@@ -22,11 +22,11 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
 
     private String DEFAULT_LABEL_TEXT;
 
-    public SeekBarWidget(Activity context, View container, SeekBar seekBar, TextView label) {
-        super(context, container);
+    public SeekBarWidget(Activity context, int containerResId, int seekBarResId, int labelResId) {
+        super(context, containerResId);
 
-        this.seekBar = seekBar;
-        this.label = label;
+        this.seekBar = (SeekBar) context.findViewById(seekBarResId);
+        this.label = (TextView) context.findViewById(labelResId);
 
         DEFAULT_LABEL_TEXT = (String) label.getText();
 
@@ -48,10 +48,6 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
         });
     }
 
-    public SeekBarWidget(Activity context, int containerResId, int seekBarResId, int labelResId) {
-        this(context, context.findViewById(containerResId), (SeekBar) context.findViewById(seekBarResId), (TextView) context.findViewById(labelResId));
-    }
-
     public void setValues(int[] values) {
         VALUES = values;
         MAX_PROGRESS = VALUES.length - 1;
@@ -65,12 +61,16 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
     public void setDefaultValue(int defaultValue) {
         DEFAULT_VALUE = defaultValue;
         setValue(DEFAULT_VALUE);
+        setLabelTextFromValue(DEFAULT_VALUE);
+    }
+
+    private void setLabelTextFromValue(int value) {
+        String radius = LittleBigBrother.distanceAsString(value);
+        label.setText(radius);
     }
 
     private void progressChanged(int progress) {
-        int radiusValue = VALUES[progress];
-        String radius = LittleBigBrother.distanceAsString(radiusValue);
-        label.setText(radius);
+        setLabelTextFromValue(VALUES[progress]);
     }
 
     private int getProgressFromValue(int value) {

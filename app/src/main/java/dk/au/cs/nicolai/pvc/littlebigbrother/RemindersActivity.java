@@ -5,6 +5,7 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -31,18 +32,22 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.database.Reminder;
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.ReminderType;
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.ReminderWithRadius;
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.UserListResultCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.WidgetCollection;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.LocationPicker;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.ProgressWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.SeekBarWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.SelectDateTimeWidget;
-import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.WidgetCollection;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ActivityDrawer;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ReminderListArrayAdapter;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Util;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.ViewUtil;
 
 public class RemindersActivity extends AppCompatActivity {
 
     private final Context CONTEXT = this;
+
+    private final FragmentTransaction mFragmentTransaction = getFragmentManager().beginTransaction();
 
     private WidgetCollection mReminderViewWidgets;
 
@@ -111,6 +116,7 @@ public class RemindersActivity extends AppCompatActivity {
 
     // Map
     MapFragment mMapFragment;
+    private LocationPicker mLocationPicker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,11 +129,21 @@ public class RemindersActivity extends AppCompatActivity {
             mDrawer.setSelection(ApplicationController.DrawerPosition.REMINDERS);
         }
 
-        mMapFragment = MapFragment.newInstance();
-        FragmentTransaction fragmentTransaction =
-                getFragmentManager().beginTransaction();
-        fragmentTransaction.add(R.id.reminderMapFragmentContainer, mMapFragment);
-        fragmentTransaction.commit();
+        FloatingActionButton confirmMapLocationButton = (FloatingActionButton) findViewById(R.id.reminderMapConfirmLocationButton);
+        confirmMapLocationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.debug(this, "FloatingActionButton clicked.");
+            }
+        });
+
+        mLocationPicker = new LocationPicker(this,
+                MapFragment.newInstance(),
+                mFragmentTransaction,
+                R.id.reminderMapContainer,
+                R.id.reminderMapFragmentContainer,
+                R.id.reminderSelectLocationButton,
+                R.id.reminderMapConfirmLocationButton);
 
         mProgressWidget = new ProgressWidget(this,
                 R.id.reminderProgress,
@@ -263,8 +279,8 @@ public class RemindersActivity extends AppCompatActivity {
     private void reminderTypeSelected(ReminderType type) {
         Log.debug(this, "Selected type: " + type);
 
-        Util.hideView(mSelectTypeView);
-        Util.showView(mReminderDetailsContainer);
+        ViewUtil.hideView(mSelectTypeView);
+        ViewUtil.showView(mReminderDetailsContainer);
 
         mSelectExpirationDateTimeWidget.show();
 
@@ -482,7 +498,7 @@ public class RemindersActivity extends AppCompatActivity {
     private void setLocationFormFieldsFromReminder(Reminder.Location reminder) {
         setRadiusFormFieldsFromReminder(reminder);
 
-        Util.setLocationText(mSelectLocationButton, reminder.getPosition());
+        mLocationPicker.setLocation(reminder.getPosition());
     }
 
     private void setTargetUserFormFieldsFromReminder(Reminder.TargetUser reminder) {
@@ -546,67 +562,67 @@ public class RemindersActivity extends AppCompatActivity {
     }
 
     private void hideReminderView() {
-        Util.hideView(mReminderView);
+        ViewUtil.hideView(mReminderView);
     }
 
     private void showReminderView() {
-        Util.showView(mReminderView);
+        ViewUtil.showView(mReminderView);
     }
 
     private void hideRemindersList() {
-        Util.hideView(mRemindersListView);
+        ViewUtil.hideView(mRemindersListView);
     }
 
     private void showRemindersList() {
-        Util.showView(mRemindersListView);
+        ViewUtil.showView(mRemindersListView);
     }
 
     private void hideSelectTypeView() {
-        Util.hideView(mRemindersListView);
+        ViewUtil.hideView(mRemindersListView);
     }
 
     private void showSelectTypeView() {
-        Util.showView(mRemindersListView);
+        ViewUtil.showView(mRemindersListView);
     }
 
     private void showLocationForm() {
-        Util.showView(mLocationForm);
+        ViewUtil.showView(mLocationForm);
     }
 
     private void hideLocationForm() {
-        Util.hideView(mLocationForm);
+        ViewUtil.hideView(mLocationForm);
     }
 
     private void showTargetUserForm() {
-        Util.showView(mTargetUserForm);
+        ViewUtil.showView(mTargetUserForm);
     }
 
     private void hideTargetUserForm() {
-        Util.hideView(mTargetUserForm);
+        ViewUtil.hideView(mTargetUserForm);
     }
 
     private void showCreateReminderButton() {
-        Util.showView(mCreateReminderButton);
+        ViewUtil.showView(mCreateReminderButton);
     }
 
     private void hideCreateReminderButton() {
-        Util.hideView(mCreateReminderButton);
+        ViewUtil.hideView(mCreateReminderButton);
     }
 
     private void showSaveChangesButton() {
-        Util.showView(mSaveChangesButton);
+        ViewUtil.showView(mSaveChangesButton);
     }
 
     private void hideSaveChangesButton() {
-        Util.hideView(mSaveChangesButton);
+        ViewUtil.hideView(mSaveChangesButton);
     }
 
     private void showNoRemindersView() {
-        Util.showView(mNoRemindersView);
+        ViewUtil.showView(mNoRemindersView);
     }
 
     private void hideNoRemindersView() {
-        Util.hideView(mNoRemindersView);
+        ViewUtil.hideView(mNoRemindersView);
     }
 
     private void init() {
@@ -614,7 +630,7 @@ public class RemindersActivity extends AppCompatActivity {
         showRemindersList();
 
         mProgressWidget.setLabel(R.string.progress_gettingReminders);
-        mProgressWidget.show();
+        mProgressWidget.hide();
     }
 
 

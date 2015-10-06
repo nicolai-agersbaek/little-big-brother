@@ -16,6 +16,7 @@ import com.mikepenz.iconics.view.IconicsImageView;
 
 import java.util.Calendar;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
 
@@ -36,13 +37,13 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
 
     private SimpleDateTime dateTime;
 
-    public SelectDateTimeWidget(Activity context, View container, Button selectDateButton, Button selectTimeButton) {
-        super(context, container);
+    public SelectDateTimeWidget(Activity context, int containerResId, int selectDateButtonResId, int selectTimeButtonResId) {
+        super(context, containerResId);
 
         dateTime = new SimpleDateTime();
 
-        this.selectDateButton = selectDateButton;
-        this.selectTimeButton = selectTimeButton;
+        this.selectDateButton = (Button) context.findViewById(selectDateButtonResId);
+        this.selectTimeButton = (Button) context.findViewById(selectTimeButtonResId);
 
         DATE_BUTTON_DEFAULT_VALUE = (String) selectDateButton.getText();
         TIME_BUTTON_DEFAULT_VALUE = (String) selectTimeButton.getText();
@@ -61,13 +62,8 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
         });
     }
 
-    public SelectDateTimeWidget(Activity context, int containerResId, int selectDateButtonResId, int selectTimeButtonResId) {
-        this(context, context.findViewById(containerResId), (Button) context.findViewById(selectDateButtonResId), (Button) context.findViewById(selectTimeButtonResId));
-    }
-
-    public void setResetButton(IconicsImageView resetButton) {
-        this.resetButton = resetButton;
-        enableResetButton();
+    public void setResetButton(int resetButtonResId) {
+        this.resetButton = (IconicsImageView) getContext().findViewById(resetButtonResId);
 
         resetButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -75,10 +71,7 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
                 reset();
             }
         });
-    }
 
-    public void setResetButton(int resetButtonResId) {
-        setResetButton((IconicsImageView) getContext().findViewById(resetButtonResId));
         disableResetButton();
     }
 
