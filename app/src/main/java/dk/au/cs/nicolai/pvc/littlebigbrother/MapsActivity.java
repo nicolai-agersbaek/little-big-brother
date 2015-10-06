@@ -1,8 +1,10 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
+import android.content.Intent;
 import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -31,8 +33,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ActivityDrawer;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
@@ -43,13 +43,17 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 public class MapsActivity extends AppCompatActivity
     implements OnMapReadyCallback, ConnectionCallbacks, OnConnectionFailedListener{
 
+    private String MODE;
+
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private GoogleApiClient mGoogleApiClient;
 
     private CameraPosition currentCameraPosition;
     private Map<String, Marker> userMapMarkers = new HashMap<>();
     private List<Marker> reminderMapMarkers = new ArrayList<>();
-    private Timer updatePositionsTimer;
+
+    private Handler updatePositionsHandler;
+    private Runnable updatePositionsRunnable;
 
     // Request code to use when launching the resolution activity
     private static final int REQUEST_RESOLVE_ERROR = 1001;
@@ -68,10 +72,23 @@ public class MapsActivity extends AppCompatActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        mDrawer = ActivityDrawer.build(this);
+        Intent intent = getIntent();
+        if (intent.getAction() == LittleBigBrother.Action.PICK_LOCATION) {
+            // Only show own location as pin on map
+            // Show OK button in bottom-right when user selects a location
+            // -> Redirect back to RemindersActivity, passing the selected location along in an Intent
 
-        if (mDrawer != null) {
-            mDrawer.setSelection(ApplicationController.DrawerPosition.MAP);
+            MODE = intent.getAction();
+        } else {
+            // Normal use of the MapsActivity
+
+            MODE = LittleBigBrother.Action.DEFAULT;
+
+            mDrawer = ActivityDrawer.build(this);
+
+            if (mDrawer != null) {
+                mDrawer.setSelection(ApplicationController.DrawerPosition.MAP);
+            }
         }
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
@@ -82,7 +99,7 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        startUpdateUserPositionsTimer();
+        startUpdatingUserPositions();
     }
 
     /**
@@ -110,12 +127,12 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        stopUpdateUserPositionsTimer();
+        stopUpdatingUserPositions();
     }
 
     @Override
     protected void onStop() {
-        stopUpdateUserPositionsTimer();
+        stopUpdatingUserPositions();
         mGoogleApiClient.disconnect();
         super.onStop();
     }
@@ -145,7 +162,7 @@ public class MapsActivity extends AppCompatActivity
 
 
         // Start updating positions of other users
-        startUpdateUserPositionsTimer();
+        startUpdatingUserPositions();
 
         // TODO: Allow Intent-provided data to override this setting.
     }
@@ -156,7 +173,7 @@ public class MapsActivity extends AppCompatActivity
         // Disable any UI components that depend on Google APIs
         // until onConnected() is called.
 
-        stopUpdateUserPositionsTimer();
+        stopUpdatingUserPositions();
 
         // TODO: Set up logic for handling this event.
     }
@@ -165,7 +182,7 @@ public class MapsActivity extends AppCompatActivity
     public void onConnectionFailed(ConnectionResult result) {
         // TODO: Finish logic for displaying errors in this event.
 
-        stopUpdateUserPositionsTimer();
+        stopUpdatingUserPositions();
 
         if (mResolvingError) {
             // Already attempting to resolve an error.
@@ -253,18 +270,25 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    private void startUpdateUserPositionsTimer() {
-        updatePositionsTimer = new Timer();
-        TimerTask updateUserPositionsTask = new TimerTask() {
+    private void startUpdatingUserPositions() {
+        updatePositionsRunnable = new Runnable() {
             @Override
             public void run() {
                 getUserPositionsFromDatabase();
+
+                updatePositionsHandler.postDelayed(this, LittleBigBrother.FETCH_USER_POSITION_INTERVAL);
             }
         };
-        updatePositionsTimer.scheduleAtFixedRate(updateUserPositionsTask, 0, LittleBigBrother.FETCH_USER_POSITION_INTERVAL);
+
+        updatePositionsHandler = new Handler();
+        updatePositionsHandler.post(updatePositionsRunnable);
     }
 
-    private void stopUpdateUserPositionsTimer() {
-        updatePositionsTimer.cancel();
+    private void stopUpdatingUserPositions() {
+        updatePositionsHandler.removeCallbacks(updatePositionsRunnable);
+    }
+
+    private void resumeUpdatingUserPositions() {
+        updatePositionsHandler.post(updatePositionsRunnable);
     }
 }

@@ -1,15 +1,9 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -26,6 +20,7 @@ import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.UserListResultCallback;
@@ -39,7 +34,6 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
  */
 public final class ApplicationController extends Application
         implements ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
-
 
     private static GoogleApiClient mGoogleApiClient;
 
@@ -210,84 +204,11 @@ public final class ApplicationController extends Application
         Log.error(this, "GoogleApiClient: onConnectionFailed.");
     }
 
-    public static void hideViews(View... views) {
-        for (View view :
-                views) {
-            hideView(view);
-        }
-    }
-
-    public static void showViews(View... views) {
-        for (View view :
-                views) {
-            showView(view);
-        }
-    }
-
-    public static void hideView(View view) {
-        view.setVisibility(View.GONE);
-    }
-
-    public static void showView(View view) {
-        view.setVisibility(View.VISIBLE);
-    }
-
-    public static void showView(View view, boolean show) {
-        view.setVisibility(
-                (show ? View.VISIBLE : View.GONE)
-        );
-    }
-
-    /**
-     * Shows the progress UI and hides given Views.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    public static void animatedShowView(Context context, final boolean show, final View view) {
-        // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
-        // for very easy animations. If available, use these APIs to fade-in
-        // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-            int shortAnimTime = context.getResources().getInteger(android.R.integer.config_shortAnimTime);
-
-            view.setVisibility(show ? View.VISIBLE : View.GONE);
-            view.animate().setDuration(shortAnimTime).alpha(
-                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    view.setVisibility(show ? View.VISIBLE : View.GONE);
-                }
-            });
-        } else {
-            // The ViewPropertyAnimator APIs are not available, so simply show
-            // and hide the relevant UI components.
-            view.setVisibility(show ? View.VISIBLE : View.GONE);
-        }
-    }
-
-    /**
-     * Shows the progress UI and hides given Views.
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    public static void animatedShowViews(Context context, final boolean show, List<View> views) {
-        for (final View view :
-                views) {
-            animatedShowView(context, show, view);
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    public static void animatedShowViews(Context context, final boolean show, View... views) {
-        for (final View view :
-                views) {
-            animatedShowView(context, show, view);
-        }
-    }
-
     public static void getUserListFromDatabase(final UserListResultCallback callback) {
         // Get list of users from database
-        ParseQuery<ParseObject> query = ParseQuery.getQuery("_User");
-        query.findInBackground(new FindCallback<ParseObject>() {
-            public void done(final List<ParseObject> userList, ParseException e) {
+        ParseQuery<ParseUser> query = ParseQuery.getQuery("_User");
+        query.findInBackground(new FindCallback<ParseUser>() {
+            public void done(final List<ParseUser> userList, ParseException e) {
                 if (e == null) {
                     callback.success(userList);
                 } else {
@@ -297,4 +218,17 @@ public final class ApplicationController extends Application
             }
         });
     }
+
+    public static ArrayList<CharSequence> getUsernamesFromParseUserList(List<ParseUser> users) {
+        ArrayList<CharSequence> usernames = new ArrayList<>();
+
+        for (ParseUser user :
+                users) {
+            usernames.add(user.getUsername());
+        }
+
+        return usernames;
+    }
+
+
 }

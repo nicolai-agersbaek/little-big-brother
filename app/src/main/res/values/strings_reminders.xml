@@ -21,6 +21,8 @@
     <string name="reminderRadius">Radius</string>
     <string name="reminderExpiration">Expiration</string>
 
+    <string name="reminderNoReminders">You have no reminders</string>
+
     <!-- Save changes / Create new -->
     <string name="action_saveChanges">Save changes</string>
     <string name="action_createReminder">Create reminder</string>
@@ -28,6 +30,7 @@
     <!-- Progress -->
     <string name="progress_savingChanges">Saving changes</string>
     <string name="progress_creatingReminder">Creating reminder</string>
+    <string name="progress_gettingReminders">Getting reminders</string>
 
     <!-- Options menu -->
     <string name="action_addReminder">Add Reminder</string>

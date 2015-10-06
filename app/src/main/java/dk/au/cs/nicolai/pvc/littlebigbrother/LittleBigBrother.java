@@ -66,6 +66,17 @@ public class LittleBigBrother {
         }
     }
 
+    public interface Extra {
+        String REQUEST_TYPE = ID_PREFIX + ":REQUEST_TYPE";
+
+        String LOCATION = ID_PREFIX + ":EXTRA_LOCATION";
+    }
+
+    public interface Action {
+        String DEFAULT = ID_PREFIX + ":" + "ACTION_DEFAULT";
+        String PICK_LOCATION = ID_PREFIX + ":" + "ACTION_PICK_LOCATION";
+    }
+
     public interface DB {
         String USER_NAME_ATTRIBUTE = "username";
         String USER_POSITION_ATTRIBUTE = "position";
