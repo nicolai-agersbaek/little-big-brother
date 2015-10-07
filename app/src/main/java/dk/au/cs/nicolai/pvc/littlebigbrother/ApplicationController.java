@@ -3,8 +3,8 @@ package dk.au.cs.nicolai.pvc.littlebigbrother;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
-import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -13,7 +13,6 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.model.LatLng;
 import com.parse.FindCallback;
 import com.parse.LogOutCallback;
 import com.parse.ParseException;
@@ -193,6 +192,12 @@ public final class ApplicationController extends Application
     public void onConnected(Bundle bundle) {
         Log.debug(this, "GoogleApiClient connected successfully.");
         isGoogleApiClientConnected = true;
+
+        Intent intent = new Intent(LittleBigBrother.Events.GOOGLE_API_CLIENT_CONNECTED);
+
+        Log.debug(this, "Local broadcast sent.");
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+
         startLocationUpdates();
     }
 
@@ -230,15 +235,5 @@ public final class ApplicationController extends Application
         }
 
         return usernames;
-    }
-
-    // LOCATION
-    public static Location getUserLocation() {
-        return LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-    }
-
-    public static LatLng getUserLatLng() {
-        Location userLocation = getUserLocation();
-        return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
     }
 }

@@ -51,4 +51,14 @@
         android:text="3 d"
         android:textSize="10sp" />
 
+    <com.mikepenz.iconics.view.IconicsImageView
+        android:id="@+id/deleteReminderButton"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        app:iiv_color="@android:color/holo_red_light"
+        app:iiv_icon="gmd-clear"
+        android:clickable="true"/>
+
 </RelativeLayout>

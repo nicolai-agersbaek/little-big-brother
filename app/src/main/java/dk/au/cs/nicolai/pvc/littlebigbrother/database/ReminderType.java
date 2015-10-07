@@ -8,8 +8,6 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
  * Created by Nicolai on 01-10-2015.
  */
 public enum ReminderType {
-    //LOCATION("LOCATION", (new ApplicationController()).getString(R.string.reminderIcon_Location)),
-
     LOCATION("LOCATION", LittleBigBrother.Icons.REMINDER_ICON_LOCATION),
     TARGET_USER("TARGET_USER", LittleBigBrother.Icons.REMINDER_ICON_TARGET_USER),
     DATE_TIME("DATE_TIME", LittleBigBrother.Icons.REMINDER_ICON_DATE_TIME);
@@ -18,8 +16,21 @@ public enum ReminderType {
     private GoogleMaterial.Icon typeIcon;
 
     ReminderType(String value, GoogleMaterial.Icon typeIcon) {
-        this.value = LittleBigBrother.enumValue(this, value);
+        this.value = value;
         this.typeIcon = typeIcon;
+    }
+
+    public static ReminderType fromTypeString(String typeString) {
+        switch (typeString) {
+            case "LOCATION":
+                return LOCATION;
+            case "TARGET_USER":
+                return TARGET_USER;
+            case "DATE_TIME":
+                return DATE_TIME;
+        }
+
+        return null;
     }
 
     public String value() {

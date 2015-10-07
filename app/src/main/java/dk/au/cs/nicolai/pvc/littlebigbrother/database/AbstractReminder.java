@@ -5,8 +5,11 @@ import com.parse.ParseObject;
 import com.parse.ParseUser;
 
 import java.util.Calendar;
+import java.util.Date;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
+import dk.au.cs.nicolai.pvc.littlebigbrother.exception.UserNotLoggedInException;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
 
 /**
  * Created by Nicolai on 01-10-2015.
@@ -20,6 +23,20 @@ public abstract class AbstractReminder extends ParseObject {
     private static final String REMINDER_DESCRIPTION_ATTRIBUTE = "description";
 
     private static final String REMINDER_EXPIRES_ATTRIBUTE   = "expires";
+
+    protected AbstractReminder() {}
+
+    protected AbstractReminder(ReminderType type) throws UserNotLoggedInException {
+
+        ParseUser currentUser = ParseUser.getCurrentUser();
+
+        if (currentUser != null) {
+            setOwner(currentUser);
+            setType(type);
+        } else {
+            throw new UserNotLoggedInException("Cannot create Reminder");
+        }
+    }
 
     public abstract String typeDetails();
 
@@ -37,12 +54,12 @@ public abstract class AbstractReminder extends ParseObject {
         }
     }
 
-    protected final void setType(ReminderType type) {
-        put(REMINDER_TYPE_ATTRIBUTE, type);
+    private final void setType(ReminderType type) {
+        put(REMINDER_TYPE_ATTRIBUTE, type.value());
     }
 
     public final ReminderType type() {
-        return (ReminderType) get(REMINDER_TYPE_ATTRIBUTE);
+        return ReminderType.fromTypeString(getString(REMINDER_TYPE_ATTRIBUTE));
     }
 
     public final GoogleMaterial.Icon icon() {
@@ -65,17 +82,30 @@ public abstract class AbstractReminder extends ParseObject {
         put(REMINDER_DESCRIPTION_ATTRIBUTE, description);
     }
 
-    public final Calendar getExpires() {
-        return (Calendar) get(REMINDER_EXPIRES_ATTRIBUTE);
+    public final Date getExpires() {
+        return getDate(REMINDER_EXPIRES_ATTRIBUTE);
     }
 
-    public final void setExpires(Calendar date) {
-        put(REMINDER_EXPIRES_ATTRIBUTE, date);
+    public final void setExpires(SimpleDateTime date) {
+        put(REMINDER_EXPIRES_ATTRIBUTE, date.asDate());
     }
 
     public final String getExpiresInString() {
+        Date expires = getExpires();
+
+        if (expires == null) {
+            return null;
+        }
+
         Calendar cal = Calendar.getInstance();
-        long diff = DateTime.difference(cal, getExpires());
+        Calendar cal2 = Calendar.getInstance();
+        cal2.setTime(expires);
+
+        long diff = cal2.getTimeInMillis() - cal.getTimeInMillis();
+
+        if (diff < 0) {
+            return null;
+        }
 
         cal.setTimeInMillis(diff);
 

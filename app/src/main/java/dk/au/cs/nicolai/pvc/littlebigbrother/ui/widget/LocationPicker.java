@@ -1,14 +1,15 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget;
 
 import android.app.Activity;
-import android.app.FragmentTransaction;
+import android.location.Location;
 import android.support.design.widget.FloatingActionButton;
 import android.view.View;
-import android.widget.Button;
 
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
+import com.google.android.gms.maps.GoogleMap.OnMarkerDragListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -21,44 +22,29 @@ import com.parse.ParseGeoPoint;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ApplicationController;
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.FragmentWidget;
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.Util;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
  * Created by Nicolai on 06-10-2015.
  */
-public class LocationPicker extends FragmentWidget<MapFragment> implements InteractiveWidget, OnMapReadyCallback, OnMapClickListener {
+public class LocationPicker extends FragmentWidget<MapFragment> implements InteractiveWidget, OnMapReadyCallback, OnMapClickListener, OnMarkerDragListener {
 
     private boolean hasMarker;
 
     private GoogleMap map;
     private Marker marker;
 
-    private View mapContainer;
     private FloatingActionButton confirmLocationButton;
-    private Button selectLocationButton;
-
-    private String LOCATION_BUTTON_DEFAULT_VALUE;
 
     private LatLng location;
     private CameraPosition cameraPosition;
 
     private OnLocationSelectedCallback locationSelectedCallback;
 
-    public LocationPicker(Activity context, MapFragment fragment, FragmentTransaction transaction, int containerResId, int mapContainerResId, int selectLocationButtonResId, int confirmLocationButtonResId) {
-        super(context, fragment, transaction, containerResId);
+    public LocationPicker(Activity context, MapFragment mapFragment, int containerResId, int confirmLocationButtonResId) {
+        super(context, mapFragment, containerResId);
 
-        this.mapContainer = context.findViewById(mapContainerResId);
-        this.selectLocationButton = (Button) context.findViewById(selectLocationButtonResId);
         this.confirmLocationButton = (FloatingActionButton) context.findViewById(confirmLocationButtonResId);
-
-        LOCATION_BUTTON_DEFAULT_VALUE = (String) selectLocationButton.getText();
-
-        selectLocationButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                show();
-            }
-        });
 
         confirmLocationButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -68,12 +54,8 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
         });
     }
 
-    private boolean hasLocationSelectedCallback() {
-        return (locationSelectedCallback != null);
-    }
-
-    private void setLocationText() {
-        Util.Loc.setLocationText(selectLocationButton, location);
+    public void getMapAsync() {
+        getFragment().getMapAsync(this);
     }
 
     public void setOnLocationSelectedCallback(OnLocationSelectedCallback callback) {
@@ -81,9 +63,7 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     }
 
     private void confirmLocationButtonClicked() {
-        setLocationText();
-
-        if (hasLocationSelectedCallback()) {
+        if (locationSelectedCallback != null) {
             locationSelectedCallback.done(location);
         }
 
@@ -92,9 +72,11 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
 
     @Override
     public void show() {
-        centerMap();
-
-        super.show();
+        if (map != null) {
+            super.show();
+        } else {
+            Log.error(this, "show() called, but Map is not ready.");
+        }
     }
 
     private void centerMap() {
@@ -107,7 +89,9 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     }
 
     private void centerMapOnUser() {
-        LatLng userPosition = ApplicationController.getUserLatLng();
+        Location userLocation = LocationServices.FusedLocationApi.getLastLocation(ApplicationController.getGoogleApiClient());
+
+        LatLng userPosition = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
 
         setMapCameraPosition(userPosition);
     }
@@ -132,6 +116,7 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
         }
 
         marker = map.addMarker(new MarkerOptions()
+                .draggable(true)
                 .position(location)
                 .icon(BitmapDescriptorFactory.defaultMarker(LittleBigBrother.DEFAULT_USER_OTHER_MARKER_HUE)));
 
@@ -140,6 +125,8 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
 
     @Override
     public void onMapClick(LatLng location) {
+        Log.debug(getContext(), "onMapClick: " + location);
+
         this.location = location;
 
         setMarker(location);
@@ -147,15 +134,22 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.debug(this, "onMapReady.");
+
         map = googleMap;
+
+        map.setOnMapClickListener(this);
+        map.setOnMarkerDragListener(this);
 
         centerMap();
     }
 
+    public LatLng getLocation() {
+        return location;
+    }
+
     public void setLocation(LatLng location) {
         this.location = location;
-
-        setLocationText();
     }
 
     public void setLocation(double latitude, double longitude) {
@@ -168,7 +162,22 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
 
     public void reset() {
         location = null;
-        selectLocationButton.setText(LOCATION_BUTTON_DEFAULT_VALUE);
+    }
+
+    @Override
+    public void onMarkerDragStart(Marker marker) {
+        // Do nothing
+    }
+
+    @Override
+    public void onMarkerDrag(Marker marker) {
+        // Do nothing
+    }
+
+    @Override
+    public void onMarkerDragEnd(Marker marker) {
+        // Save location
+        setLocation(marker.getPosition());
     }
 
     public static abstract class OnLocationSelectedCallback {

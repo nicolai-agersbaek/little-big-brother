@@ -16,7 +16,7 @@ import com.parse.ParseGeoPoint;
 public final class Util {
 
     public static class Loc {
-        public static final String LATITUDE_LONGITUDE_SEPARATOR = ":";
+        public static final String LATITUDE_LONGITUDE_SEPARATOR = ",";
 
         public static String getLocationString(Location location) {
             return location.getLatitude() + LATITUDE_LONGITUDE_SEPARATOR + location.getLongitude();
@@ -27,7 +27,10 @@ public final class Util {
         }
 
         public static String getLocationString(LatLng location) {
-            return location.latitude + LATITUDE_LONGITUDE_SEPARATOR + location.longitude;
+            int latitude = (int) Math.round(location.latitude);
+            int longitude = (int) Math.round(location.longitude);
+
+            return "(" + latitude + LATITUDE_LONGITUDE_SEPARATOR + longitude + ")";
         }
 
 

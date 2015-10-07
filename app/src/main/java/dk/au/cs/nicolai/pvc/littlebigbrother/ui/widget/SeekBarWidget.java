@@ -51,6 +51,7 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
     public void setValues(int[] values) {
         VALUES = values;
         MAX_PROGRESS = VALUES.length - 1;
+        seekBar.setMax(MAX_PROGRESS);
 
         if (DEFAULT_VALUE != -1) {
             DEFAULT_VALUE = VALUES[MAX_PROGRESS / 2];

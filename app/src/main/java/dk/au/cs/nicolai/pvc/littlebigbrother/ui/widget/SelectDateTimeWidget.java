@@ -15,7 +15,9 @@ import android.widget.TimePicker;
 import com.mikepenz.iconics.view.IconicsImageView;
 
 import java.util.Calendar;
+import java.util.Date;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.R;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
@@ -45,8 +47,8 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
         this.selectDateButton = (Button) context.findViewById(selectDateButtonResId);
         this.selectTimeButton = (Button) context.findViewById(selectTimeButtonResId);
 
-        DATE_BUTTON_DEFAULT_VALUE = (String) selectDateButton.getText();
-        TIME_BUTTON_DEFAULT_VALUE = (String) selectTimeButton.getText();
+        DATE_BUTTON_DEFAULT_VALUE = context.getResources().getString(R.string.prompt_selectDate);
+        TIME_BUTTON_DEFAULT_VALUE = context.getResources().getString(R.string.prompt_selectTime);
 
         selectDateButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -91,6 +93,18 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
         selectTimeButton.setText(TIME_BUTTON_DEFAULT_VALUE);
     }
 
+    public void setDate(Date date) {
+        dateTime.setDate(date);
+
+        updateSelectDateButtonText();
+    }
+
+    public void setTime(Date date) {
+        dateTime.setTime(date);
+
+        updateSelectTimeButtonText();
+    }
+
     public void setDate(int year, int month, int day) {
         dateTime.setDate(year, month, day);
 
@@ -115,9 +129,18 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
         updateSelectTimeButtonText();
     }
 
+    public void setDateTime(Date date) {
+        setDate(date);
+        setTime(date);
+
+        update();
+    }
+
     public void setDateTime(SimpleDateTime dateTime) {
         setDate(dateTime);
         setTime(dateTime);
+
+        update();
     }
 
     public void setDateTime(Calendar calendar) {

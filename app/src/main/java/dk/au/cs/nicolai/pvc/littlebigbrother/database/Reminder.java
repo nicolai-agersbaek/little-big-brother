@@ -4,10 +4,8 @@ import com.parse.ParseClassName;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseUser;
 
-import java.util.Calendar;
-
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.LittleBigBrotherException;
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
+import dk.au.cs.nicolai.pvc.littlebigbrother.exception.UserNotLoggedInException;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
 
 /**
  * Created by Nicolai on 27-09-2015.
@@ -15,26 +13,18 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 @ParseClassName("Reminder")
 public class Reminder extends AbstractReminder {
 
-    public Reminder() {
+    public Reminder() {}
 
+    protected Reminder(ReminderType type) throws UserNotLoggedInException {
+        super(type);
     }
 
-    protected Reminder(ReminderType reminderType) {
-
-        ParseUser currentUser = ParseUser.getCurrentUser();
-
-        if (currentUser != null) {
-            setOwner(currentUser);
-        } else {
-            Log.error(this, "Cannot create Reminder: User not logged in.");
-            //throw new LittleBigBrotherException.UserNotLoggedIn("Cannot create Reminder");
-        }
-    }
-
+    @ParseClassName("Reminder.Location")
     public static final class Location extends ReminderWithRadius {
         private static final String REMINDER_POSITION_ATTRIBUTE = "position";
 
-        Location() {
+        public Location() throws
+                UserNotLoggedInException {
             super(ReminderType.LOCATION);
         }
 
@@ -62,12 +52,12 @@ public class Reminder extends AbstractReminder {
         }
     }
 
+    @ParseClassName("Reminder.TargetUser")
     public static final class TargetUser extends ReminderWithRadius {
         private static final String REMINDER_TARGET_USER_ATTRIBUTE = "target";
 
-        TargetUser() throws
-                LittleBigBrotherException.UserNotLoggedIn,
-                LittleBigBrotherException.ReminderAlreadyBound {
+        public TargetUser() throws
+                UserNotLoggedInException {
 
             super(ReminderType.TARGET_USER);
         }
@@ -95,22 +85,22 @@ public class Reminder extends AbstractReminder {
         }
     }
 
+    @ParseClassName("Reminder.DateTime")
     public static final class DateTime extends Reminder {
         private static final String REMINDER_DATE_ATTRIBUTE = "date";
 
-        DateTime() throws
-                LittleBigBrotherException.UserNotLoggedIn,
-                LittleBigBrotherException.ReminderAlreadyBound {
+        public DateTime() throws
+                UserNotLoggedInException {
 
             super(ReminderType.TARGET_USER);
         }
 
-        public final Calendar getDate() {
-            return (Calendar) get(REMINDER_DATE_ATTRIBUTE);
+        public final SimpleDateTime getDate() {
+            return new SimpleDateTime(getDate(REMINDER_DATE_ATTRIBUTE));
         }
 
-        public final void setDate(Calendar date) {
-            put(REMINDER_DATE_ATTRIBUTE, date);
+        public final void setDate(SimpleDateTime date) {
+            put(REMINDER_DATE_ATTRIBUTE, date.asDate());
         }
 
         public final String typeDetails() {

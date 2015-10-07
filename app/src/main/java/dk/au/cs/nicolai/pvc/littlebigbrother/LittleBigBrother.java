@@ -106,6 +106,9 @@ public class LittleBigBrother {
     // Register custom ParseObject subclasses
     static {
         ParseObject.registerSubclass(Reminder.class);
+        ParseObject.registerSubclass(Reminder.Location.class);
+        ParseObject.registerSubclass(Reminder.TargetUser.class);
+        ParseObject.registerSubclass(Reminder.DateTime.class);
     }
 
     private LittleBigBrother() {}

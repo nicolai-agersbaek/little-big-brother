@@ -1,12 +1,14 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother.database;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.exception.UserNotLoggedInException;
+
 /**
  * Created by Nicolai on 04-10-2015.
  */
 public abstract class ReminderWithRadius extends Reminder {
     private static final String REMINDER_RADIUS_ATTRIBUTE   = "radius";
 
-    public ReminderWithRadius(ReminderType reminderType) {
+    public ReminderWithRadius(ReminderType reminderType) throws UserNotLoggedInException {
         super(reminderType);
     }
 

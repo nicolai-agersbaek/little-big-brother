@@ -18,6 +18,10 @@ public abstract class Widget {
         this.container = context.findViewById(containerResId);
     }
 
+    public void show(boolean show) {
+        ViewUtil.showView(container, show);
+    }
+
     public void show() {
         ViewUtil.showView(container);
     }

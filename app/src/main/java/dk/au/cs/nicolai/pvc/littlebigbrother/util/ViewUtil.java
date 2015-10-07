@@ -14,6 +14,24 @@ import java.util.Collection;
  */
 public class ViewUtil {
 
+    public static void hideView(View view) {
+        showView(view, false);
+    }
+
+    public static void showView(View view) {
+        showView(view, true);
+    }
+
+    public static void showView(View view, boolean show) {
+        if (view != null) {
+            view.setVisibility(
+                    (show ? View.VISIBLE : View.GONE)
+            );
+        } else {
+            android.util.Log.e(Log.TAG, "NullPointerException!");
+        }
+    }
+
     public static void hideViews(View... views) {
         for (View view :
                 views) {
@@ -40,20 +58,6 @@ public class ViewUtil {
                 views) {
             showView(view);
         }
-    }
-
-    public static void hideView(View view) {
-        view.setVisibility(View.GONE);
-    }
-
-    public static void showView(View view) {
-        view.setVisibility(View.VISIBLE);
-    }
-
-    public static void showView(View view, boolean show) {
-        view.setVisibility(
-                (show ? View.VISIBLE : View.GONE)
-        );
     }
 
     /**

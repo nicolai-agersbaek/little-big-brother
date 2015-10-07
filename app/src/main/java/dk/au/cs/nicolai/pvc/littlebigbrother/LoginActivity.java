@@ -277,7 +277,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     public void redirect() {
-        startWifiActivity();
+        startRemindersActivity();
     }
 
     public void startWifiActivity() {
@@ -288,6 +288,12 @@ public class LoginActivity extends AppCompatActivity {
 
     public void startMapsActivity() {
         Intent intent = new Intent(this, MapsActivity.class);
+
+        startActivity(intent);
+    }
+
+    public void startRemindersActivity() {
+        Intent intent = new Intent(this, RemindersActivity.class);
 
         startActivity(intent);
     }

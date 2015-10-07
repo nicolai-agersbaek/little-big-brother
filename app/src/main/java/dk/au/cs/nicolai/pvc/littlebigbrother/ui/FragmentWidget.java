@@ -11,13 +11,19 @@ public abstract class FragmentWidget<T extends Fragment> extends Widget {
 
     private T fragment;
 
-    protected FragmentWidget(Activity context, T fragment, FragmentTransaction fragmentTransaction, int containerResId) {
+    protected FragmentWidget(Activity context, T fragment, FragmentTransaction fragmentTransaction, int fragmentContainerResId, int containerResId) {
         super(context, containerResId);
 
         this.fragment = fragment;
 
-        fragmentTransaction.add(containerResId, fragment);
+        fragmentTransaction.add(fragmentContainerResId, fragment);
         fragmentTransaction.commit();
+    }
+
+    protected FragmentWidget(Activity context, T fragment, int containerResId) {
+        super(context, containerResId);
+
+        this.fragment = fragment;
     }
 
     protected T getFragment() {

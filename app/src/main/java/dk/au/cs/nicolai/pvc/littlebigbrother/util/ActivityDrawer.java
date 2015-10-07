@@ -41,7 +41,7 @@ public class ActivityDrawer {
                 .addDrawerItems(
                         ApplicationController.DrawerItem.MAP,
                         ApplicationController.DrawerItem.WIFI,
-                        //ApplicationController.DrawerItem.REMINDERS,
+                        ApplicationController.DrawerItem.REMINDERS,
                         new DividerDrawerItem(),
                         ApplicationController.DrawerItem.LOGOUT
                 )

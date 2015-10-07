@@ -13,6 +13,8 @@ import java.util.ArrayList;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.R;
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.Reminder;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderListItemLongClickCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.ReminderListWidget;
 
 /**
  * Created by Nicolai on 01-10-2015.
@@ -23,6 +25,10 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
     private static final int DETAILS_TEXT_VIEW = R.id.reminderTypeDetail;
     private static final int ICON_VIEW = R.id.reminderTypeIconView;
     private static final int EXPIRES_TEXT_VIEW = R.id.reminderExpiresText;
+    private static final int DELETE_BUTTON = R.id.deleteReminderButton;
+
+    private ReminderListWidget.OnDeleteReminderButtonClickedCallback deleteCallback;
+    private OnReminderListItemLongClickCallback longClickCallback;
 
     private final Context context;
     private final ArrayList<Reminder> reminders;
@@ -32,6 +38,9 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
         protected TextView expiresInTextView;
         protected IconicsImageView typeIconView;
         protected TextView typeDetailsTextView;
+        protected IconicsImageView deleteButton;
+
+        protected Reminder reminder;
     }
 
     public ReminderListArrayAdapter(Context context, ArrayList<Reminder> reminders) {
@@ -39,6 +48,14 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
                 reminders);
         this.context = context;
         this.reminders = reminders;
+    }
+
+    public void setOnDeleteReminderButtonClickedCallback(ReminderListWidget.OnDeleteReminderButtonClickedCallback callback) {
+        deleteCallback = callback;
+    }
+
+    public void setOnReminderListItemLongClickCallback(OnReminderListItemLongClickCallback callback) {
+        longClickCallback = callback;
     }
 
     @Override
@@ -55,24 +72,46 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
             viewHolder.expiresInTextView = (TextView) view.findViewById(EXPIRES_TEXT_VIEW);
             viewHolder.typeDetailsTextView = (TextView) view.findViewById(DETAILS_TEXT_VIEW);
             viewHolder.typeIconView = (IconicsImageView) view.findViewById(ICON_VIEW);
+            viewHolder.deleteButton = (IconicsImageView) view.findViewById(DELETE_BUTTON);
 
-            Reminder reminder = reminders.get(position);
+            final Reminder reminder = reminders.get(position);
+
+            viewHolder.reminder = reminder;
 
             viewHolder.titleTextView.setText(reminder.getTitle());
             viewHolder.typeDetailsTextView.setText(reminder.typeDetails());
             viewHolder.expiresInTextView.setText(reminder.getExpiresInString());
             viewHolder.typeIconView.setIcon(reminder.icon());
 
+            viewHolder.deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    deleteCallback.delete(reminder);
+                }
+            });
+
+            view.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    longClickCallback.call(reminder);
+                    return false;
+                }
+            });
+
             view.setTag(viewHolder);
-        } else { // Can reuse view
+        } else {
+            // Reusing previously displayed View
             // Need to set view details from tag
+
+            // TODO: Clarify implementation details of ViewHolder pattern so that the onLongClickListeners are set correctly.
+
             view = convertView;
-            view.setTag(reminders.get(position));
+            //((ViewHolder) view.getTag()).reminder = reminders.get(position);
         }
 
         ViewHolder holder = (ViewHolder) view.getTag();
         //ParseUser user = ParseUser.getCurrentUser();
-        Reminder reminder = reminders.get(position);
+        final Reminder reminder = reminders.get(position);
 
         // Fill in data
         holder.titleTextView.setText(reminder.getTitle());
