@@ -18,7 +18,9 @@ import java.util.Calendar;
 import java.util.Date;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.R;
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.Reminder;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderDataChangedCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
 
@@ -33,6 +35,8 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
     private Button selectDateButton;
     private Button selectTimeButton;
     private IconicsImageView resetButton;
+
+    private OnReminderDataChangedCallback dataChangedCallback;
 
     private String DATE_BUTTON_DEFAULT_VALUE;
     private String TIME_BUTTON_DEFAULT_VALUE;
@@ -62,6 +66,10 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
                 showTimePickerDialog();
             }
         });
+    }
+
+    public void setOnReminderDataChangedCallback(OnReminderDataChangedCallback dataChangedCallback) {
+        this.dataChangedCallback = dataChangedCallback;
     }
 
     public void setResetButton(int resetButtonResId) {
@@ -149,6 +157,26 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
         update();
     }
 
+    public void setDateTime(Reminder reminder) {
+        SimpleDateTime expires = reminder.getExpires();
+
+        if (expires != null) {
+            setDateTime(expires);
+        }
+    }
+
+    public void setDateTime(Reminder.DateTime reminder) {
+        SimpleDateTime date = reminder.getDate();
+
+        if (date != null) {
+            setDateTime(date);
+        }
+    }
+
+    public SimpleDateTime getDateTime() {
+        return dateTime;
+    }
+
     private void updateSelectDateButtonText() {
         selectDateButton.setText(dateTime.dateString());
     }
@@ -207,6 +235,7 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
             SimpleDateTime dateTime = new SimpleDateTime(year, month, day);
 
             Log.debug(this, "Date selected: " + dateTime.dateString());
+            dataChangedCallback.onDateChanged(dateTime);
             setDate(dateTime);
         }
     }
@@ -232,6 +261,7 @@ public final class SelectDateTimeWidget extends Widget implements InteractiveWid
             SimpleDateTime dateTime = new SimpleDateTime(hourOfDay, minute);
 
             Log.debug(this, "Time selected: " + dateTime.timeString());
+            dataChangedCallback.onDateChanged(dateTime);
             setTime(dateTime);
         }
     }

@@ -333,23 +333,25 @@
             <LinearLayout
                 android:id="@+id/reminderNoRemindersContainer"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="30dp"
+                android:layout_gravity="center_vertical"
                 android:visibility="gone">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/reminderNoReminders"
-                    android:gravity="center_horizontal"/>
+                    android:gravity="center_horizontal"
+                    android:textSize="14sp" />
 
                 <Button
                     android:id="@+id/reminderAddReminderBorderlessButton" style="?android:attr/borderlessButtonStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@android:color/holo_blue_light"
-                    android:text="@string/action_addReminder" />
+                    android:text="@string/action_addReminder"
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ListView

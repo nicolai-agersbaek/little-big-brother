@@ -1,6 +1,7 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother.database;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.exception.UserNotLoggedInException;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
  * Created by Nicolai on 04-10-2015.
@@ -13,7 +14,9 @@ public abstract class ReminderWithRadius extends Reminder {
     }
 
     public final Integer getRadius() {
-        return (Integer) getNumber(REMINDER_RADIUS_ATTRIBUTE);
+        return (getNumber(REMINDER_RADIUS_ATTRIBUTE) != null
+                ? (Integer) getNumber(REMINDER_RADIUS_ATTRIBUTE)
+                : null);
     }
 
     public final void setRadius(Integer radius) {
@@ -28,5 +31,15 @@ public abstract class ReminderWithRadius extends Reminder {
         ReminderWithRadius other = (ReminderWithRadius) otherReminder;
 
         return (getRadius().equals(other.getRadius()));
+    }
+
+    public boolean valid() {
+        boolean radiusValid = (getRadius() != null);
+
+        if (!radiusValid) {
+            Log.error(this, "Radius is NULL");
+        }
+
+        return super.valid() && radiusValid;
     }
 }

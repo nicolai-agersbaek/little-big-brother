@@ -5,12 +5,18 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.ReminderWithRadius;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderDataChangedCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderRadiusChangedCallback;
 
 /**
  * Created by Nicolai on 06-10-2015.
  */
 public class SeekBarWidget extends Widget implements InteractiveWidget {
+
+    private OnReminderRadiusChangedCallback radiusChangedCallback;
+    private OnReminderDataChangedCallback dataChangedCallback;
 
     private SeekBar seekBar;
     private TextView label;
@@ -48,6 +54,14 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
         });
     }
 
+    public void setOnReminderDataChangedCallback(OnReminderDataChangedCallback dataChangedCallback) {
+        this.dataChangedCallback = dataChangedCallback;
+    }
+
+    public void setOnReminderRadiusChangedCallback(OnReminderRadiusChangedCallback radiusChangedCallback) {
+        this.radiusChangedCallback = radiusChangedCallback;
+    }
+
     public void setValues(int[] values) {
         VALUES = values;
         MAX_PROGRESS = VALUES.length - 1;
@@ -71,7 +85,14 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
     }
 
     private void progressChanged(int progress) {
-        setLabelTextFromValue(VALUES[progress]);
+        int value = VALUES[progress];
+
+        setLabelTextFromValue(value);
+
+        if (radiusChangedCallback != null) {
+            radiusChangedCallback.onRadiusChanged(value);
+            dataChangedCallback.onRadiusChanged(value);
+        }
     }
 
     private int getProgressFromValue(int value) {
@@ -95,6 +116,12 @@ public class SeekBarWidget extends Widget implements InteractiveWidget {
         int progress = getProgressFromValue(value);
 
         seekBar.setProgress(progress);
+    }
+
+    public void setValue(ReminderWithRadius reminder) {
+        if (reminder.getRadius() != null) {
+            setValue(reminder.getRadius());
+        }
     }
 
     public final void reset() {

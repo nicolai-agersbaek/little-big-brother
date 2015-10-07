@@ -16,6 +16,7 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
  */
 public abstract class AbstractReminder extends ParseObject {
     private boolean isBound = false;
+    protected boolean fresh = true;
 
     private static final String REMINDER_OWNER_ATTRIBUTE    = "owner";
     private static final String REMINDER_TYPE_ATTRIBUTE     = "type";
@@ -45,6 +46,8 @@ public abstract class AbstractReminder extends ParseObject {
     }
 
     protected final boolean setOwner(ParseUser owner) {
+        fresh = false;
+
         if (!isBound) {
             put(REMINDER_OWNER_ATTRIBUTE, owner);
             isBound = true;
@@ -56,6 +59,8 @@ public abstract class AbstractReminder extends ParseObject {
 
     private final void setType(ReminderType type) {
         put(REMINDER_TYPE_ATTRIBUTE, type.value());
+
+        fresh = false;
     }
 
     public final ReminderType type() {
@@ -72,6 +77,8 @@ public abstract class AbstractReminder extends ParseObject {
 
     public final void setTitle(String name) {
         put(REMINDER_TITLE_ATTRIBUTE, name);
+
+        fresh = false;
     }
 
     public final String getDescription() {
@@ -80,18 +87,28 @@ public abstract class AbstractReminder extends ParseObject {
 
     public final void setDescription(String description) {
         put(REMINDER_DESCRIPTION_ATTRIBUTE, description);
+
+        fresh = false;
     }
 
-    public final Date getExpires() {
-        return getDate(REMINDER_EXPIRES_ATTRIBUTE);
+    public final SimpleDateTime getExpires() {
+        Date expires = getDate(REMINDER_EXPIRES_ATTRIBUTE);
+
+        if (expires != null) {
+            return new SimpleDateTime(getDate(REMINDER_EXPIRES_ATTRIBUTE));
+        }
+
+        return null;
     }
 
     public final void setExpires(SimpleDateTime date) {
         put(REMINDER_EXPIRES_ATTRIBUTE, date.asDate());
+
+        fresh = false;
     }
 
     public final String getExpiresInString() {
-        Date expires = getExpires();
+        SimpleDateTime expires = getExpires();
 
         if (expires == null) {
             return null;
@@ -99,7 +116,7 @@ public abstract class AbstractReminder extends ParseObject {
 
         Calendar cal = Calendar.getInstance();
         Calendar cal2 = Calendar.getInstance();
-        cal2.setTime(expires);
+        cal2.setTime(expires.asDate());
 
         long diff = cal2.getTimeInMillis() - cal.getTimeInMillis();
 

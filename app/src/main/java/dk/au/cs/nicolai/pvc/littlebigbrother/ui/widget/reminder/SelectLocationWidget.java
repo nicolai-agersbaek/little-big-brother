@@ -22,8 +22,9 @@ public class SelectLocationWidget extends Widget implements InteractiveWidget {
     private LocationPicker locationPicker;
 
     private OnLocationSelectedCallback locationSelectedCallback;
+    private OnReminderDataChangedCallback dataChangedCallback;
 
-    public SelectLocationWidget(Activity context, int containerResId, int selectLocationButtonResId, LocationPicker locationPicker) {
+    public SelectLocationWidget(Activity context, int containerResId, int selectLocationButtonResId, final LocationPicker locationPicker) {
         super(context, containerResId);
 
         this.selectLocationButton = (Button) context.findViewById(selectLocationButtonResId);
@@ -43,12 +44,17 @@ public class SelectLocationWidget extends Widget implements InteractiveWidget {
             public void done(LatLng location) {
                 // TODO: Type casting should be done when selecting type
                 setLocationText();
+                dataChangedCallback.onLocationChanged(locationPicker.getLocation());
 
                 if (locationSelectedCallback != null) {
-                    locationSelectedCallback.done(location);
+                    locationSelectedCallback.done(locationPicker.getLocation());
                 }
             }
         });
+    }
+
+    public void setOnReminderDataChangedCallback(OnReminderDataChangedCallback dataChangedCallback) {
+        this.dataChangedCallback = dataChangedCallback;
     }
 
     public void setOnLocationSelectedCallback(OnLocationSelectedCallback callback) {

@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.Button;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.Widget;
+import dk.au.cs.nicolai.pvc.littlebigbrother.util.ViewUtil;
 
 /**
  * Created by Nicolai on 06-10-2015.
@@ -54,5 +55,21 @@ public class FinalizeReminderWidget extends Widget {
         public abstract void save();
         public abstract void create();
         public abstract void cancel();
+    }
+
+    @Override
+    public void show() {
+        super.show();
+        ViewUtil.showViews(cancelButton, createButton, saveButton);
+    }
+
+    public void showForExisting(boolean forExisting) {
+        super.show();
+
+        if (forExisting) {
+            ViewUtil.hideView(createButton);
+        } else {
+            ViewUtil.hideView(saveButton);
+        }
     }
 }

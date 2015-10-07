@@ -69,9 +69,8 @@ public final class ApplicationController extends Application
         ApplicationDrawerItem REMINDERS = ApplicationDrawerItem.REMINDERS(new ApplicationDrawerItemOnClickedCallback() {
             @Override
             public void onClicked(Activity activity) {
-                //throw new UnsupportedOperationException("RemindersActivity not yet implemented.");
-                //Intent intent = new Intent(activity, MapsActivity.class);
-                //activity.startActivity(intent);
+                Intent intent = new Intent(activity, RemindersActivity.class);
+                activity.startActivity(intent);
             }
         });
 
@@ -118,6 +117,8 @@ public final class ApplicationController extends Application
         // Create GoogleApiClient object for use with the UpdateUserPositionService.
         mGoogleApiClient = GoogleApiClientFactory.LocationServices.build(this);
         mGoogleApiClient.connect();
+
+
     }
 
     public boolean isRequestingLocationUpdates() {

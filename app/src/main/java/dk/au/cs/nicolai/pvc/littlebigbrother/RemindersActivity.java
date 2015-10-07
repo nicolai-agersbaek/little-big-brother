@@ -12,22 +12,25 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 
 import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.LatLng;
 import com.mikepenz.iconics.view.IconicsImageView;
 import com.mikepenz.materialdrawer.Drawer;
+import com.parse.DeleteCallback;
 import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.ParseUser;
+import com.parse.SaveCallback;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +47,10 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.ProgressWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.SeekBarWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.SelectDateTimeWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.FinalizeReminderWidget;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderDataChangedCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderListItemLongClickCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderRadiusChangedCallback;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.OnReminderRadiusChangedListener;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.ReminderCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.ReminderListWidget;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.widget.reminder.SelectLocationWidget;
@@ -53,17 +59,23 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.ActivityDrawer;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ReminderListArrayAdapter;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.Util;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ViewUtil;
 
-public class RemindersActivity extends AppCompatActivity {
+public class RemindersActivity extends AppCompatActivity implements OnReminderRadiusChangedListener {
 
     private WidgetCollection mReminderViewWidgets;
     private WidgetCollection mWidgets;
     private HashSet<View> mViews;
 
+    private enum VIEW {
+        LIST, REMINDER
+    }
+
+    private VIEW currentView;
+    private boolean existingReminder;
+
     // Reminder information
-    private Reminder mReminder;
+    private Reminder mReminder = new Reminder();
 
     // Drawer
     private Drawer mDrawer;
@@ -113,6 +125,9 @@ public class RemindersActivity extends AppCompatActivity {
     private LocationPicker mLocationPicker;
     private SelectLocationWidget mSelectLocationWidget;
 
+    // Data monitor
+    private OnReminderDataChangedCallback onReminderDataChangedCallback;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -131,30 +146,37 @@ public class RemindersActivity extends AppCompatActivity {
             mDrawer.setSelection(ApplicationController.DrawerPosition.REMINDERS);
         }
 
+
+        onReminderDataChangedCallback = new OnReminderDataChangedCallback() {
+            @Override
+            public void onLocationChanged(LatLng location) {
+                ((Reminder.Location) mReminder).setPosition(new ParseGeoPoint(location.latitude, location.longitude));
+            }
+
+            @Override
+            public void onRadiusChanged(int radius) {
+                ((ReminderWithRadius) mReminder).setRadius(radius);
+            }
+
+            @Override
+            public void onTargetUserChanged(ParseUser targetUser) {
+                ((Reminder.TargetUser) mReminder).setTargetUser(targetUser);
+            }
+
+            @Override
+            public void onDateChanged(SimpleDateTime simpleDateTime) {
+                if (mReminder.type() == ReminderType.DATE_TIME) {
+                    ((Reminder.DateTime) mReminder).setDate(simpleDateTime);
+                } else {
+                    mReminder.setExpires(simpleDateTime);
+                }
+            }
+        };
+
+
         mProgressWidget = newWidget(new ProgressWidget(this,
                 R.id.reminderProgress,
                 R.id.reminderProgressTextView));
-
-        mLocationPicker = new LocationPicker(this,
-                (MapFragment) getFragmentManager().findFragmentById(R.id.reminderMapFragment),
-                R.id.reminderMapContainer,
-                R.id.reminderMapConfirmLocationButton);
-
-        mSelectLocationWidget = newReminderViewWidget(new SelectLocationWidget(this,
-                R.id.reminderLocationForm,
-                R.id.reminderSelectLocationButton,
-                mLocationPicker));
-
-        mSelectDateTimeWidget = newReminderViewWidget(new SelectDateTimeWidget(this,
-                R.id.reminderDateTimeForm,
-                R.id.reminderSelectDateButton,
-                R.id.reminderSelectTimeButton));
-
-        mSelectExpirationDateTimeWidget = newReminderViewWidget(new SelectDateTimeWidget(this,
-                R.id.reminderExpirationForm,
-                R.id.reminderExpirationSelectDateButton,
-                R.id.reminderExpirationSelectTimeButton));
-        mSelectExpirationDateTimeWidget.setResetButton(R.id.reminderExpirationResetDateTimeButton);
 
         mSelectRadiusWidget = newReminderViewWidget(new SeekBarWidget(this,
                 R.id.reminderSelectRadiusForm,
@@ -162,6 +184,38 @@ public class RemindersActivity extends AppCompatActivity {
                 R.id.reminderRadiusValueTextView));
         mSelectRadiusWidget.setValues(getResources().getIntArray(R.array.reminderRadiusSeekBarValues));
         mSelectRadiusWidget.setDefaultValue(getResources().getInteger(R.integer.reminderRadiusSeekBarDefaultValue));
+        mSelectRadiusWidget.setOnReminderRadiusChangedCallback(new OnReminderRadiusChangedCallback() {
+            @Override
+            public void onRadiusChanged(int radius) {
+                mLocationPicker.onRadiusChanged(radius);
+            }
+        });
+        mSelectRadiusWidget.setOnReminderDataChangedCallback(onReminderDataChangedCallback);
+
+        mLocationPicker = new LocationPicker(this,
+                (MapFragment) getFragmentManager().findFragmentById(R.id.reminderMapFragment),
+                R.id.reminderMapContainer,
+                R.id.reminderMapConfirmLocationButton);
+        mLocationPicker.onRadiusChanged(mSelectRadiusWidget.getValue());
+
+        mSelectLocationWidget = newReminderViewWidget(new SelectLocationWidget(this,
+                R.id.reminderLocationForm,
+                R.id.reminderSelectLocationButton,
+                mLocationPicker));
+        mSelectLocationWidget.setOnReminderDataChangedCallback(onReminderDataChangedCallback);
+
+        mSelectDateTimeWidget = newReminderViewWidget(new SelectDateTimeWidget(this,
+                R.id.reminderDateTimeForm,
+                R.id.reminderSelectDateButton,
+                R.id.reminderSelectTimeButton));
+        mSelectDateTimeWidget.setOnReminderDataChangedCallback(onReminderDataChangedCallback);
+
+        mSelectExpirationDateTimeWidget = newReminderViewWidget(new SelectDateTimeWidget(this,
+                R.id.reminderExpirationForm,
+                R.id.reminderExpirationSelectDateButton,
+                R.id.reminderExpirationSelectTimeButton));
+        mSelectExpirationDateTimeWidget.setResetButton(R.id.reminderExpirationResetDateTimeButton);
+        mSelectExpirationDateTimeWidget.setOnReminderDataChangedCallback(onReminderDataChangedCallback);
 
         mSelectTypeWidget = newReminderViewWidget(new SelectTypeWidget(this,
                 R.id.reminderSelectTypeContainer,
@@ -211,6 +265,11 @@ public class RemindersActivity extends AppCompatActivity {
             public void add() {
                 newReminder();
             }
+
+            @Override
+            public void delete(Reminder reminder) {
+                deleteReminder(reminder);
+            }
         });
         mReminderListWidget.setNoRemindersWidget(R.id.reminderNoRemindersContainer, R.id.reminderAddReminderBorderlessButton);
 
@@ -229,9 +288,9 @@ public class RemindersActivity extends AppCompatActivity {
 
         setSelectUserArrayAdapter();
 
-        //initRemindersList();
+        initRemindersList();
 
-        test();
+        //test();
 
         init();
 
@@ -244,6 +303,11 @@ public class RemindersActivity extends AppCompatActivity {
                mLocationPicker.getMapAsync();
             }
         }, filter);
+    }
+
+    @Override
+    public void onRadiusChanged(int radius) {
+        mLocationPicker.onRadiusChanged(radius);
     }
 
     private void test() {
@@ -274,10 +338,6 @@ public class RemindersActivity extends AppCompatActivity {
         } catch (UserNotLoggedInException e) {
             Log.debug(this, "test() : UserNotLoggedInException");
         }
-    }
-
-    private void populateRemindersList(Reminder... reminders) {
-        populateRemindersList(Arrays.asList(reminders));
     }
 
     private <T extends Widget> T newReminderViewWidget(T widget) {
@@ -351,6 +411,9 @@ public class RemindersActivity extends AppCompatActivity {
         } catch (UserNotLoggedInException e) {
 
         }
+
+        mReminder.setTitle(mReminderTitleView.getText().toString());
+        mReminder.setDescription(mReminderDescriptionView.getText().toString());
     }
 
     // TARGET USER FORM
@@ -358,9 +421,23 @@ public class RemindersActivity extends AppCompatActivity {
     private void initTargetUserForm() {
         mTargetUserForm = getViewById(R.id.reminderTargetUserForm);
 
-
         mTargetUserIconView = (IconicsImageView) findViewById(R.id.reminderTargetUserIcon);
         mSelectTargetUserSpinner = (Spinner) findViewById(R.id.reminderSelectTargetUserSpinner);
+
+        mSelectTargetUserSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.debug(this, "" + parent.getItemAtPosition(position));
+
+                // Save to mReminder
+                //((Reminder.TargetUser) mReminder).setTargetUser();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
+        });
     }
 
     // FINALIZE REMINDER FORM
@@ -369,25 +446,9 @@ public class RemindersActivity extends AppCompatActivity {
         saveChanges();
     }
 
-    private void saveChanges() {
-        Log.debug(this, "Saving changes to Reminder: " + mReminder.getTitle());
-
-        Util.showNotYetImplementedAlert(this, "saveChanges()");
-    }
-
     private void createReminderButtonClicked() {
         mProgressWidget.setLabel(CREATE_REMINDER_PROGRESS_TEXT);
         createReminder();
-    }
-
-    private void createReminder() {
-        Log.error(this, "createReminder not yet implemented.");
-
-        Util.showNotYetImplementedAlert(this, "createReminder()");
-    }
-
-    private void editReminder(Reminder reminder) {
-        initForExistingReminder(reminder);
     }
 
     /**
@@ -399,36 +460,20 @@ public class RemindersActivity extends AppCompatActivity {
     private void cancelButtonClicked() {
         Log.debug(this, "CancelButton clicked.");
 
-        showDiscardChangesAlertDialog();
-    }
-
-    /**
-     * <p>Request to add a reminder from the Options menu</p>
-     *
-     * <p>Show alert dialog if currently editing/creating a reminder</p>
-     */
-    private void addReminder() {
-        Log.debug(this, "addReminder invoked.");
-
-        if (mReminder != null) {
-            showDiscardChangesAlertDialog(new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    initForNewReminder();
-                }
-            });
-        } else {
-            initForNewReminder();
+        if (!mReminder.isFresh()) {
+            showDiscardChangesAlertDialog();
         }
     }
 
-    private void setReminderFormFieldsFromReminder(Reminder reminder) {
+
+
+    private <T extends Reminder> void setReminderFormFieldsFromReminder(T reminder) {
         setCurrentReminder(reminder);
 
         mReminderTitleView.setText(reminder.getTitle());
         mReminderDescriptionView.setText(reminder.getDescription());
 
-        setExpirationDateFormFieldsFromReminder(reminder);
+        mSelectExpirationDateTimeWidget.setDateTime(reminder);
 
         switch (reminder.type()) {
             case LOCATION:
@@ -438,19 +483,13 @@ public class RemindersActivity extends AppCompatActivity {
                 setTargetUserFormFieldsFromReminder((Reminder.TargetUser) reminder);
                 break;
             case DATE_TIME:
-                setDateTimeFormFieldsFromReminder((Reminder.DateTime) reminder);
+                mSelectDateTimeWidget.setDateTime(reminder);
                 break;
         }
     }
 
-    private void setExpirationDateFormFieldsFromReminder(Reminder reminder) {
-        if (reminder.getExpires() != null) {
-            mSelectExpirationDateTimeWidget.setDateTime(reminder.getExpires());
-        }
-    }
-
     private void setRadiusFormFieldsFromReminder(ReminderWithRadius reminder) {
-        mSelectRadiusWidget.setValue(reminder.getRadius());
+        mSelectRadiusWidget.setValue(reminder);
     }
 
     private void setLocationFormFieldsFromReminder(Reminder.Location reminder) {
@@ -463,11 +502,7 @@ public class RemindersActivity extends AppCompatActivity {
     private void setTargetUserFormFieldsFromReminder(Reminder.TargetUser reminder) {
         setRadiusFormFieldsFromReminder(reminder);
 
-
-    }
-
-    private void setDateTimeFormFieldsFromReminder(Reminder.DateTime reminder) {
-        mSelectDateTimeWidget.setDateTime(reminder.getDate());
+        // TODO: Set target user from reminder
     }
 
     /**
@@ -479,8 +514,6 @@ public class RemindersActivity extends AppCompatActivity {
         setToNewReminder();
 
         mReminderView.clearFocus();
-
-        //mReminderTitleView.requestFocus();
     }
 
     private void initForExistingReminder(Reminder reminder) {
@@ -491,14 +524,15 @@ public class RemindersActivity extends AppCompatActivity {
     }
 
     private void clearReminderFormFields() {
-        Util.showNotYetImplementedAlert(this, "clearReminderFormFields()");
+        mReminderTitleView.setText(null);
+        mReminderDescriptionView.setText(null);
+
+        mSelectLocationWidget.reset();
+        mSelectDateTimeWidget.reset();
+        mSelectExpirationDateTimeWidget.reset();
     }
 
-    private void deleteReminder(Reminder reminder) {
-        Log.debug(this, "Deleting reminder: " + reminder.getTitle());
 
-        Util.showNotYetImplementedAlert(this, "deleteReminder()");
-    }
 
     private void hideAll() {
         for (View view :
@@ -506,13 +540,6 @@ public class RemindersActivity extends AppCompatActivity {
             ViewUtil.hideView(view);
         }
         mWidgets.hideAll();
-    }
-
-    private void init() {
-        setToReminderList();
-
-        mProgressWidget.setLabel(R.string.progress_gettingReminders);
-        mProgressWidget.hide();
     }
 
 
@@ -539,6 +566,9 @@ public class RemindersActivity extends AppCompatActivity {
         final ParseUser user = ParseUser.getCurrentUser();
 
         if (user != null) {
+            mProgressWidget.setLabel("Retrieving reminders.");
+            mProgressWidget.show();
+
             // Get list of reminders from database
             ParseQuery<Reminder> query = ParseQuery.getQuery("Reminders");
             query.whereEqualTo("owner", user);
@@ -547,20 +577,30 @@ public class RemindersActivity extends AppCompatActivity {
                     if (e == null) {
                         Log.debug(this, "Retrieved reminders from server. Result count: " + reminders.size());
                         if (!reminders.isEmpty()) {
+                            setRemindersFromDatabase(reminders);
                             pinRemindersInBackground(reminders);
-                            populateRemindersList(reminders);
+
+                            setToReminderList();
+                            mProgressWidget.hide();
                         } else {
                             // Get Reminders from local datastore
                             getRemindersFromLocalStore(user);
                         }
                     } else {
                         Log.error(this, "Error: " + e.getMessage());
+
+                        setToReminderList();
+                        mProgressWidget.hide();
                     }
                 }
             });
         } else {
             Log.error(this, "User not logged in.");
         }
+    }
+
+    private void setRemindersFromDatabase(List<Reminder> reminders) {
+        mReminderListWidget.set(reminders);
     }
 
     private void getRemindersFromLocalStore(ParseUser user) {
@@ -575,44 +615,22 @@ public class RemindersActivity extends AppCompatActivity {
                 if (e == null) {
                     Log.debug(this, "Retrieved reminders from local storage. Result count: " + reminders.size());
                     if (!reminders.isEmpty()) {
-                        populateRemindersList(reminders);
+                        setRemindersFromDatabase(reminders);
                     }
+
+                    setToReminderList();
+                    mProgressWidget.hide();
                 } else {
-                    Log.error(this, "Error: " + e.getMessage());
+                    Log.exception(this, e);
+
+                    setToReminderList();
+                    mProgressWidget.hide();
                 }
             }
         });
     }
 
-    private void clearRemindersList() {
-        // First item in list should be add reminder
-
-        mReminderListAdapter.clear();
-    }
-
-    private void populateRemindersList(List<Reminder> reminders) {
-        //mRemindersList = (ArrayList<Reminder>) reminders;
-
-        if (mReminderListAdapter == null) {
-            // First time we populate the list
-            mReminderListAdapter = new ReminderListArrayAdapter(this, (ArrayList<Reminder>) reminders);
-            //mRemindersListView.setAdapter(mReminderListAdapter);
-            return;
-        }
-
-        if (!mReminderListAdapter.isEmpty()) {
-            clearRemindersList();
-        }
-
-        mReminderListAdapter.addAll(reminders);
-        mReminderListAdapter.notifyDataSetChanged();
-
-        mProgressWidget.hide();
-    }
-
-
     // Alert: Discard changes
-
     public void showDiscardChangesAlertDialog(DialogInterface.OnClickListener onDiscardClickedListener) {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 
@@ -700,7 +718,7 @@ public class RemindersActivity extends AppCompatActivity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_newReminder) {
             Log.debug(this, "onOptionsItemSelected: " + getString(R.string.action_addReminder));
-            addReminder();
+            newReminder();
         }
 
         return super.onOptionsItemSelected(item);
@@ -708,17 +726,18 @@ public class RemindersActivity extends AppCompatActivity {
 
     private void setToReminderList() {
         hideAll();
+        existingReminder = false;
 
         mReminderListWidget.show();
     }
 
     private void setToReminder() {
+        hideAll();
+
         ViewUtil.showView(mReminderView);
     }
 
     private void setToNewReminder() {
-        hideAll();
-
         setToReminder();
 
         ViewUtil.showView(mReminderTitleAndDescriptionContainer);
@@ -726,8 +745,6 @@ public class RemindersActivity extends AppCompatActivity {
     }
 
     private void setToEditReminder(Reminder reminder) {
-        hideAll();
-
         setToReminder();
 
         ViewUtil.showView(mReminderTitleAndDescriptionContainer);
@@ -737,10 +754,10 @@ public class RemindersActivity extends AppCompatActivity {
 
     private void setForAfterSelectType() {
         ViewUtil.showView(mReminderDetailsContainer);
-        mFinalizeReminderWidget.show();
 
         mSelectTypeWidget.hide();
         mSelectExpirationDateTimeWidget.show();
+        mFinalizeReminderWidget.show();
     }
 
     private void setForSelectType(ReminderType type) {
@@ -761,17 +778,117 @@ public class RemindersActivity extends AppCompatActivity {
 
     private void setForSelectLocationType() {
         mSelectLocationWidget.show();
+        mSelectRadiusWidget.show();
     }
 
     private void setForSelectTargetUserType() {
         ViewUtil.showView(mTargetUserForm);
+        mSelectRadiusWidget.show();
     }
 
     private void setForSelectDateTimeType() {
         mSelectDateTimeWidget.show();
     }
 
+    private void saveChanges() {
+        if (mReminder.type() == ReminderType.DATE_TIME) {
+            mReminder.setExpires(mSelectExpirationDateTimeWidget.getDateTime());
+        }
+
+        if (!mReminder.valid()) {
+            Log.error(this, "Attempting save invalid Reminder.");
+            return;
+        }
+
+        Log.debug(this, "Saving changes to Reminder: " + mReminder.getTitle());
+
+        mProgressWidget.setLabel(SAVE_CHANGES_PROGRESS_TEXT);
+        mProgressWidget.show();
+
+        mReminder.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if (e != null) {
+                    mReminder = new Reminder();
+                    setToReminderList();
+                    mProgressWidget.hide();
+                } else {
+                    Log.exception(this, e);
+                }
+            }
+        });
+    }
+
     private void newReminder() {
-        Util.showNotYetImplementedAlert(this, "newReminder() not yet implemented");
+        if (!mReminder.isFresh() && currentView == VIEW.REMINDER) {
+            showDiscardChangesAlertDialog(new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    existingReminder = false;
+                    initForNewReminder();
+                }
+            });
+        } else {
+            existingReminder = false;
+            initForNewReminder();
+        }
+    }
+
+    private void createReminder() {
+        if (mReminder.type() == ReminderType.DATE_TIME) {
+            mReminder.setExpires(mSelectExpirationDateTimeWidget.getDateTime());
+        }
+
+        if (!mReminder.valid()) {
+            Log.error(this, "Attempting save invalid Reminder.");
+            return;
+        }
+
+        Log.debug(this, "Creating new Reminder: " + mReminder.getTitle());
+
+        mReminderListWidget.add(mReminder);
+
+        mReminder.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                if (e != null) {
+
+                } else {
+                    Log.exception(this, e);
+                }
+                mReminder = new Reminder();
+                setToReminderList();
+                mProgressWidget.hide();
+            }
+        });
+    }
+
+    private void editReminder(Reminder reminder) {
+        existingReminder = true;
+        initForExistingReminder(reminder);
+    }
+
+    private void init() {
+        currentView = VIEW.LIST;
+
+        mReminderListWidget.show();
+
+        mProgressWidget.setLabel(R.string.progress_gettingReminders);
+        mProgressWidget.hide();
+    }
+
+    private void deleteReminder(Reminder reminder) {
+        Log.debug(this, "Deleting reminder: " + reminder.getTitle());
+
+        reminder.deleteInBackground(new DeleteCallback() {
+            @Override
+            public void done(ParseException e) {
+                if (e == null) {
+                    Log.debug(this, "Deleted reminder.");
+                } else {
+                    Log.exception(this, e);
+                }
+            }
+        });
     }
 }

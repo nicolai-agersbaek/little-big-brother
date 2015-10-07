@@ -33,16 +33,6 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
     private final Context context;
     private final ArrayList<Reminder> reminders;
 
-    static class ViewHolder {
-        protected TextView titleTextView;
-        protected TextView expiresInTextView;
-        protected IconicsImageView typeIconView;
-        protected TextView typeDetailsTextView;
-        protected IconicsImageView deleteButton;
-
-        protected Reminder reminder;
-    }
-
     public ReminderListArrayAdapter(Context context, ArrayList<Reminder> reminders) {
         super(context, LIST_ROW_LAYOUT,
                 reminders);
@@ -60,64 +50,37 @@ public class ReminderListArrayAdapter extends ArrayAdapter<Reminder> {
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
-        View view;
-        if (convertView == null) {
-            LayoutInflater inflater = (LayoutInflater) context
-                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            view = inflater.inflate(LIST_ROW_LAYOUT, parent, false);
+        LayoutInflater inflater = (LayoutInflater) context
+                .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(LIST_ROW_LAYOUT, parent, false);
 
-            final ViewHolder viewHolder = new ViewHolder();
+        TextView titleTextView = (TextView) view.findViewById(TITLE_TEXT_VIEW);
+        TextView expiresInTextView = (TextView) view.findViewById(EXPIRES_TEXT_VIEW);
+        TextView typeDetailsTextView = (TextView) view.findViewById(DETAILS_TEXT_VIEW);
+        IconicsImageView typeIconView = (IconicsImageView) view.findViewById(ICON_VIEW);
+        IconicsImageView deleteButton = (IconicsImageView) view.findViewById(DELETE_BUTTON);
 
-            viewHolder.titleTextView = (TextView) view.findViewById(TITLE_TEXT_VIEW);
-            viewHolder.expiresInTextView = (TextView) view.findViewById(EXPIRES_TEXT_VIEW);
-            viewHolder.typeDetailsTextView = (TextView) view.findViewById(DETAILS_TEXT_VIEW);
-            viewHolder.typeIconView = (IconicsImageView) view.findViewById(ICON_VIEW);
-            viewHolder.deleteButton = (IconicsImageView) view.findViewById(DELETE_BUTTON);
-
-            final Reminder reminder = reminders.get(position);
-
-            viewHolder.reminder = reminder;
-
-            viewHolder.titleTextView.setText(reminder.getTitle());
-            viewHolder.typeDetailsTextView.setText(reminder.typeDetails());
-            viewHolder.expiresInTextView.setText(reminder.getExpiresInString());
-            viewHolder.typeIconView.setIcon(reminder.icon());
-
-            viewHolder.deleteButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    deleteCallback.delete(reminder);
-                }
-            });
-
-            view.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    longClickCallback.call(reminder);
-                    return false;
-                }
-            });
-
-            view.setTag(viewHolder);
-        } else {
-            // Reusing previously displayed View
-            // Need to set view details from tag
-
-            // TODO: Clarify implementation details of ViewHolder pattern so that the onLongClickListeners are set correctly.
-
-            view = convertView;
-            //((ViewHolder) view.getTag()).reminder = reminders.get(position);
-        }
-
-        ViewHolder holder = (ViewHolder) view.getTag();
-        //ParseUser user = ParseUser.getCurrentUser();
         final Reminder reminder = reminders.get(position);
 
-        // Fill in data
-        holder.titleTextView.setText(reminder.getTitle());
-        holder.typeDetailsTextView.setText(reminder.typeDetails());
-        holder.expiresInTextView.setText(reminder.getExpiresInString());
-        holder.typeIconView.setIcon(reminder.icon());
+        titleTextView.setText(reminder.getTitle());
+        typeDetailsTextView.setText(reminder.typeDetails());
+        expiresInTextView.setText(reminder.getExpiresInString());
+        typeIconView.setIcon(reminder.icon());
+
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteCallback.delete(reminder);
+            }
+        });
+
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                longClickCallback.call(reminder);
+                return false;
+            }
+        });
 
         return view;
     }

@@ -81,6 +81,8 @@ public class LittleBigBrother {
         String USER_NAME_ATTRIBUTE = "username";
         String USER_POSITION_ATTRIBUTE = "position";
         String USER_PAIRED_DEVICES_ATTRIBUTE = "pairedDevices";
+
+        String REMINDERS = PACKAGE_NAME + ":" + "REMINDERS";
     }
 
     public interface Events {

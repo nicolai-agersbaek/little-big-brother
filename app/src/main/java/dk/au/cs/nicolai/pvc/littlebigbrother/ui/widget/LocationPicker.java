@@ -14,6 +14,8 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -22,20 +24,26 @@ import com.parse.ParseGeoPoint;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ApplicationController;
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
 import dk.au.cs.nicolai.pvc.littlebigbrother.ui.FragmentWidget;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.MarkerWithRadius;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.OnRadiusChangedListener;
+import dk.au.cs.nicolai.pvc.littlebigbrother.ui.RenderMarkerWithRadiusCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 /**
  * Created by Nicolai on 06-10-2015.
  */
-public class LocationPicker extends FragmentWidget<MapFragment> implements InteractiveWidget, OnMapReadyCallback, OnMapClickListener, OnMarkerDragListener {
+public class LocationPicker extends FragmentWidget<MapFragment> implements InteractiveWidget, OnMapReadyCallback, OnMapClickListener, OnMarkerDragListener, OnRadiusChangedListener {
 
     private boolean hasMarker;
 
     private GoogleMap map;
     private Marker marker;
+    private Circle circle;
+    private MarkerWithRadius markerWithRadius;
 
     private FloatingActionButton confirmLocationButton;
 
+    private int radius;
     private LatLng location;
     private CameraPosition cameraPosition;
 
@@ -54,6 +62,12 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
         });
     }
 
+    public void setRadius(int radius) {
+        this.radius = radius;
+
+        markerWithRadius.onRadiusChanged(radius);
+    }
+
     public void getMapAsync() {
         getFragment().getMapAsync(this);
     }
@@ -63,9 +77,7 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     }
 
     private void confirmLocationButtonClicked() {
-        if (locationSelectedCallback != null) {
-            locationSelectedCallback.done(location);
-        }
+        locationSelectedCallback.done(location);
 
         hide();
     }
@@ -111,16 +123,30 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     }
 
     private void setMarker(LatLng location) {
+        MarkerOptions markerOptions = new MarkerOptions()
+                .draggable(true)
+                .position(location)
+                .icon(BitmapDescriptorFactory.defaultMarker(LittleBigBrother.DEFAULT_USER_OTHER_MARKER_HUE));
+
+        setMarker(markerOptions);
+    }
+
+    private void setMarker(MarkerOptions markerOptions) {
         if (hasMarker) {
             removeMarker();
         }
 
-        marker = map.addMarker(new MarkerOptions()
-                .draggable(true)
-                .position(location)
-                .icon(BitmapDescriptorFactory.defaultMarker(LittleBigBrother.DEFAULT_USER_OTHER_MARKER_HUE)));
+        marker = map.addMarker(markerOptions);
 
         hasMarker = true;
+    }
+
+    private void setCircle(CircleOptions circleOptions) {
+        if (circle != null) {
+            circle.remove();
+        }
+
+        circle = map.addCircle(circleOptions);
     }
 
     @Override
@@ -128,6 +154,19 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
         Log.debug(getContext(), "onMapClick: " + location);
 
         this.location = location;
+
+        if (markerWithRadius == null) {
+            markerWithRadius = new MarkerWithRadius(location, radius);
+            markerWithRadius.setRenderCallback(new RenderMarkerWithRadiusCallback() {
+                @Override
+                public void render(MarkerOptions markerOptions, CircleOptions circleOptions) {
+                    setMarker(markerOptions);
+                    setCircle(circleOptions);
+                }
+            });
+        }
+
+        markerWithRadius.onMarkerMoved(location);
 
         setMarker(location);
     }
@@ -142,6 +181,15 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
         map.setOnMarkerDragListener(this);
 
         centerMap();
+    }
+
+    @Override
+    public void onRadiusChanged(int radius) {
+        this.radius = radius;
+
+        if (markerWithRadius != null) {
+            markerWithRadius.onRadiusChanged(radius);
+        }
     }
 
     public LatLng getLocation() {
@@ -166,7 +214,8 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
 
     @Override
     public void onMarkerDragStart(Marker marker) {
-        // Do nothing
+        // Hide Circle while dragging
+        circle.remove();
     }
 
     @Override
@@ -177,7 +226,7 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     @Override
     public void onMarkerDragEnd(Marker marker) {
         // Save location
-        setLocation(marker.getPosition());
+        markerWithRadius.onMarkerMoved(marker.getPosition());
     }
 
     public static abstract class OnLocationSelectedCallback {

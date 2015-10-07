@@ -19,6 +19,12 @@ public class ApplicationDrawerItem extends PrimaryDrawerItem {
         MAP, WIFI, REMINDERS, LOGOUT, NONE
     }
 
+    private interface Icons {
+        GoogleMaterial.Icon MAP = GoogleMaterial.Icon.gmd_satellite;
+        GoogleMaterial.Icon WIFI = GoogleMaterial.Icon.gmd_wifi;
+        GoogleMaterial.Icon REMINDERS = GoogleMaterial.Icon.gmd_alarm;
+    }
+
     private ApplicationDrawerItem(int nameResId, GoogleMaterial.Icon icon, ITEM_TYPE type, ApplicationDrawerItemOnClickedCallback callback) {
         super.withName(nameResId).withIcon(icon);
         this.type = type;
@@ -38,15 +44,15 @@ public class ApplicationDrawerItem extends PrimaryDrawerItem {
     }
 
     public static ApplicationDrawerItem MAP(ApplicationDrawerItemOnClickedCallback onClickedCallback) {
-        return new ApplicationDrawerItem(R.string.drawer_item_map, GoogleMaterial.Icon.gmd_map, ITEM_TYPE.MAP, onClickedCallback);
+        return new ApplicationDrawerItem(R.string.drawer_item_map, Icons.MAP, ITEM_TYPE.MAP, onClickedCallback);
     }
 
     public static ApplicationDrawerItem WIFI(ApplicationDrawerItemOnClickedCallback onClickedCallback) {
-        return new ApplicationDrawerItem(R.string.drawer_item_wifi, GoogleMaterial.Icon.gmd_wifi, ITEM_TYPE.WIFI, onClickedCallback);
+        return new ApplicationDrawerItem(R.string.drawer_item_wifi, Icons.WIFI, ITEM_TYPE.WIFI, onClickedCallback);
     }
 
     public static ApplicationDrawerItem REMINDERS(ApplicationDrawerItemOnClickedCallback onClickedCallback) {
-        return new ApplicationDrawerItem(R.string.drawer_item_reminders, ITEM_TYPE.REMINDERS, onClickedCallback);
+        return new ApplicationDrawerItem(R.string.drawer_item_reminders, Icons.REMINDERS, ITEM_TYPE.REMINDERS, onClickedCallback);
     }
 
     public static ApplicationDrawerItem LOGOUT(ApplicationDrawerItemOnClickedCallback onClickedCallback) {

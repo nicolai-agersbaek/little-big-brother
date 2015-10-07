@@ -61,8 +61,27 @@ public class ReminderListWidget extends Widget {
                     add(deletedReminder);
                     deletedReminder = null;
                 }
+            }
+        });
+        undoDeleteSnackbar.setCallback(new Snackbar.Callback() {
+            @Override
+            public void onDismissed(Snackbar snackbar, int event) {
+                super.onDismissed(snackbar, event);
 
-                undoDeleteSnackbar.dismiss();
+                switch (event) {
+                    case DISMISS_EVENT_ACTION:
+                        // UNDO selected
+                        break;
+                    case DISMISS_EVENT_TIMEOUT:
+                        // Timed out
+                        reminderCallback.delete(deletedReminder);
+                        break;
+                }
+            }
+
+            @Override
+            public void onShown(Snackbar snackbar) {
+                super.onShown(snackbar);
             }
         });
     }
@@ -126,6 +145,11 @@ public class ReminderListWidget extends Widget {
 
     public void setOnReminderListItemLongClickCallback(OnReminderListItemLongClickCallback callback) {
         adapter.setOnReminderListItemLongClickCallback(callback);
+    }
+
+    public void set(Collection<Reminder> reminders) {
+        adapter.clear();
+        adapter.addAll(reminders);
     }
 
     public void add(Reminder reminder) {
