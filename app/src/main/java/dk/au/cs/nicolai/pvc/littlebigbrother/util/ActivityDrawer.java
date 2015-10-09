@@ -40,7 +40,7 @@ public class ActivityDrawer {
                 .withActionBarDrawerToggle(false)
                 .addDrawerItems(
                         ApplicationController.DrawerItem.MAP,
-                        ApplicationController.DrawerItem.WIFI,
+                        //ApplicationController.DrawerItem.WIFI,
                         ApplicationController.DrawerItem.REMINDERS,
                         new DividerDrawerItem(),
                         ApplicationController.DrawerItem.LOGOUT

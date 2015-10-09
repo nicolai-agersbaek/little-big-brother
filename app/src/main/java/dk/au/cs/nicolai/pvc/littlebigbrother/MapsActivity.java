@@ -1,16 +1,15 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -35,13 +34,12 @@ import java.util.List;
 import java.util.Map;
 
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ActivityDrawer;
-import dk.au.cs.nicolai.pvc.littlebigbrother.util.GoogleApiClientFactory;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
 
 // TODO: Consider using Map padding when using the Maps activity to edit/create Reminder locations.
 // TODO: Handle when user minimizes application (think it's the onStop() event callback)
 public class MapsActivity extends AppCompatActivity
-    implements OnMapReadyCallback, ConnectionCallbacks, OnConnectionFailedListener{
+    implements OnMapReadyCallback {
 
     private String MODE;
 
@@ -68,32 +66,30 @@ public class MapsActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
-        Intent intent = getIntent();
-        if (intent.getAction() == LittleBigBrother.Action.PICK_LOCATION) {
-            // Only show own location as pin on map
-            // Show OK button in bottom-right when user selects a location
-            // -> Redirect back to RemindersActivity, passing the selected location along in an Intent
+        mDrawer = ActivityDrawer.build(this);
 
-            MODE = intent.getAction();
-        } else {
-            // Normal use of the MapsActivity
-
-            MODE = LittleBigBrother.Action.DEFAULT;
-
-            mDrawer = ActivityDrawer.build(this);
-
-            if (mDrawer != null) {
-                mDrawer.setSelection(ApplicationController.DrawerPosition.MAP);
-            }
+        if (mDrawer != null) {
+            mDrawer.setSelection(ApplicationController.DrawerPosition.MAP);
         }
 
         // TODO: Get map camera position from Intent, if provided (from Reminders activities)
 
-        mGoogleApiClient = GoogleApiClientFactory.LocationServices.build(this);
+        mGoogleApiClient = ApplicationController.getGoogleApiClient();
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.debug(this, "Broadcast received");
+                getMapAsync();
+            }
+        }, Filters.GOOGLE_API_CLIENT_CONNECTED);
+    }
+
+    private void getMapAsync() {
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
     }
 
     @Override
@@ -114,27 +110,6 @@ public class MapsActivity extends AppCompatActivity
 
         // Assign the passed GoogleMap instance to a private field
         mMap = map;
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (!mResolvingError) {  // more about this later
-            mGoogleApiClient.connect();
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        stopUpdatingUserPositions();
-    }
-
-    @Override
-    protected void onStop() {
-        stopUpdatingUserPositions();
-        mGoogleApiClient.disconnect();
-        super.onStop();
     }
 
     /**
@@ -165,41 +140,6 @@ public class MapsActivity extends AppCompatActivity
         startUpdatingUserPositions();
 
         // TODO: Allow Intent-provided data to override this setting.
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause) {
-        // The connection has been interrupted.
-        // Disable any UI components that depend on Google APIs
-        // until onConnected() is called.
-
-        stopUpdatingUserPositions();
-
-        // TODO: Set up logic for handling this event.
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        // TODO: Finish logic for displaying errors in this event.
-
-        stopUpdatingUserPositions();
-
-        if (mResolvingError) {
-            // Already attempting to resolve an error.
-            return;
-        } else if (result.hasResolution()) {
-            try {
-                mResolvingError = true;
-                result.startResolutionForResult(this, REQUEST_RESOLVE_ERROR);
-            } catch (IntentSender.SendIntentException e) {
-                // There was an error with the resolution intent. Try again.
-                mGoogleApiClient.connect();
-            }
-        } else {
-            // Show dialog using GoogleApiAvailability.getErrorDialog()
-            //showErrorDialog(result.getErrorCode());
-            mResolvingError = true;
-        }
     }
 
     /**

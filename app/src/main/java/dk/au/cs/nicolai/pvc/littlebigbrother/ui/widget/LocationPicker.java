@@ -69,6 +69,7 @@ public class LocationPicker extends FragmentWidget<MapFragment> implements Inter
     }
 
     public void getMapAsync() {
+        Log.debug(this, "getMapAsync called.");
         getFragment().getMapAsync(this);
     }
 

@@ -280,11 +280,13 @@ public class LoginActivity extends AppCompatActivity {
         startRemindersActivity();
     }
 
+    /*
     public void startWifiActivity() {
         Intent intent = new Intent(this, WifiActivity.class);
 
         startActivity(intent);
     }
+    */
 
     public void startMapsActivity() {
         Intent intent = new Intent(this, MapsActivity.class);

@@ -22,8 +22,11 @@ import com.parse.ParseQuery;
 import com.parse.ParseUser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.database.Reminder;
 import dk.au.cs.nicolai.pvc.littlebigbrother.database.UserListResultCallback;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ApplicationDrawerItem;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ApplicationDrawerItemOnClickedCallback;
@@ -35,6 +38,8 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.Log;
  */
 public final class ApplicationController extends Application
         implements ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
+
+    private static Map<String, Reminder> mReminders;
 
     private static GoogleApiClient mGoogleApiClient;
 
@@ -57,6 +62,7 @@ public final class ApplicationController extends Application
         });
 
         // WiFi
+        /*
         ApplicationDrawerItem WIFI = ApplicationDrawerItem.WIFI(new ApplicationDrawerItemOnClickedCallback() {
             @Override
             public void onClicked(Activity activity) {
@@ -64,6 +70,7 @@ public final class ApplicationController extends Application
                 activity.startActivity(intent);
             }
         });
+        */
 
         // Reminders
         ApplicationDrawerItem REMINDERS = ApplicationDrawerItem.REMINDERS(new ApplicationDrawerItemOnClickedCallback() {
@@ -118,7 +125,22 @@ public final class ApplicationController extends Application
         mGoogleApiClient = GoogleApiClientFactory.LocationServices.build(this);
         mGoogleApiClient.connect();
 
+        mReminders = new HashMap();
+    }
 
+    public static void setReminder(String id, Reminder reminder) {
+        mReminders.put(id, reminder);
+    }
+    public static Reminder getReminder(String id) {
+        return mReminders.get(id);
+    }
+
+    public static Map<String, Reminder> getReminders() {
+        return mReminders;
+    }
+
+    public static int getReminderId() {
+        return mReminders.size() + 1;
     }
 
     public boolean isRequestingLocationUpdates() {

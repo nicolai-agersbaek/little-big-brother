@@ -145,6 +145,16 @@ public final class SimpleDateTime {
         return hour + TIME_SEPARATOR + (minute < 10 ? "0" + minute : minute);
     }
 
+    public long getTimeInMillis() {
+        return calendar.getTimeInMillis();
+    }
+
+    public long getTimeInMillisUntilThis() {
+        Calendar cal = Calendar.getInstance();
+
+        return calendar.getTimeInMillis() - cal.getTimeInMillis();
+    }
+
     @Override
     public String toString() {
         return dateString() + DATE_TIME_SEPARATOR + timeString();

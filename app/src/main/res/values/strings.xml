@@ -17,4 +17,6 @@
     <string name="prompt_selectUser">User</string>
     <string name="prompt_selectDate">Date</string>
     <string name="prompt_selectTime">Time</string>
+
+    <string name="error_geofence_transition_invalid_type">Invalid Geofence transition type</string>
 </resources>

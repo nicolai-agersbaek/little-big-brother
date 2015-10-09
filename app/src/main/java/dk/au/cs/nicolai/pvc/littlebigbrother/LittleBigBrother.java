@@ -41,6 +41,8 @@ public class LittleBigBrother {
     private static final String PARSE_APPLICATION_ID = "QbrGLBCIPI7lRRX4p3Hn66xP1hjkO49gRfJhfVN5";
     private static final String PARSE_CLIENT_KEY = "L1AKtlEN8UIqoypKJmpiETyV4iijHFySExLajbql";
 
+    public static final int GEOFENCE_TRANSITION_DWELL_TIME = 30;
+
     public static final boolean DRAWER_ONLY_SHOW_FOR_USERS = false;
 
     public interface Settings {
