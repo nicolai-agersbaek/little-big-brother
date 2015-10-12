@@ -20,6 +20,8 @@ public class Reminder extends AbstractReminder {
 
     protected Reminder(ReminderType type) throws UserNotLoggedInException {
         super(type);
+
+        //ApplicationController.addReminder(Integer.toString(getId()), this);
     }
 
     @ParseClassName("Reminder.Location")

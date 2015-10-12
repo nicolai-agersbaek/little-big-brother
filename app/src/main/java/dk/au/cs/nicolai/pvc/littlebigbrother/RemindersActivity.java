@@ -1,11 +1,12 @@
 package dk.au.cs.nicolai.pvc.littlebigbrother;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
@@ -17,12 +18,18 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 
+import com.google.android.gms.common.api.Result;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.GeofencingRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.mikepenz.iconics.view.IconicsImageView;
 import com.mikepenz.materialdrawer.Drawer;
 import com.parse.DeleteCallback;
 import com.parse.FindCallback;
+import com.parse.GetCallback;
 import com.parse.ParseException;
 import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
@@ -61,11 +68,13 @@ import dk.au.cs.nicolai.pvc.littlebigbrother.util.ReminderListArrayAdapter;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.ViewUtil;
 
-public class RemindersActivity extends AppCompatActivity implements OnReminderRadiusChangedListener {
+public class RemindersActivity extends AppCompatActivity implements OnReminderRadiusChangedListener, ResultCallback {
 
     private WidgetCollection mReminderViewWidgets;
     private WidgetCollection mWidgets;
     private HashSet<View> mViews;
+    private List<Geofence> mGeofenceList = new ArrayList<>();
+    private PendingIntent mGeofencePendingIntent;
 
     private enum VIEW {
         LIST, REMINDER
@@ -73,6 +82,7 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
 
     private VIEW currentView;
     private boolean existingReminder;
+    private int reminderId;
 
     // Reminder information
     private Reminder mReminder = new Reminder();
@@ -96,6 +106,9 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
     private View mReminderDetailsContainer;
 
     // TargetUser
+    private ParseUser mSelectedTargetUser;
+    private OnTargetUserSavedCallback targetUserSavedCallback;
+    private String mSelectedTargetUserName;
     private View mTargetUserForm;
     private IconicsImageView mTargetUserIconView;
     private Spinner mSelectTargetUserSpinner;
@@ -173,6 +186,10 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
             }
         };
 
+        mLocationPicker = new LocationPicker(this,
+                (MapFragment) getFragmentManager().findFragmentById(R.id.reminderMapFragment),
+                R.id.reminderMapContainer,
+                R.id.reminderMapConfirmLocationButton);
 
         mProgressWidget = newWidget(new ProgressWidget(this,
                 R.id.reminderProgress,
@@ -192,10 +209,7 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
         });
         mSelectRadiusWidget.setOnReminderDataChangedCallback(onReminderDataChangedCallback);
 
-        mLocationPicker = new LocationPicker(this,
-                (MapFragment) getFragmentManager().findFragmentById(R.id.reminderMapFragment),
-                R.id.reminderMapContainer,
-                R.id.reminderMapConfirmLocationButton);
+
         mLocationPicker.onRadiusChanged(mSelectRadiusWidget.getValue());
 
         mSelectLocationWidget = newReminderViewWidget(new SelectLocationWidget(this,
@@ -294,15 +308,13 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
 
         init();
 
-        IntentFilter filter = new IntentFilter(LittleBigBrother.Events.GOOGLE_API_CLIENT_CONNECTED);
-
         LocalBroadcastManager.getInstance(this).registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                Log.debug(this, "Broadcast received");
                mLocationPicker.getMapAsync();
             }
-        }, filter);
+        }, Filters.GOOGLE_API_CLIENT_CONNECTED);
     }
 
     @Override
@@ -427,10 +439,9 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
         mSelectTargetUserSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Log.debug(this, "" + parent.getItemAtPosition(position));
-
-                // Save to mReminder
-                //((Reminder.TargetUser) mReminder).setTargetUser();
+                mSelectedTargetUserName = parent.getItemAtPosition(position).toString();
+                Log.debug(this, "Selected user: " + mSelectedTargetUserName);
+                getSelectedTargetUserFromDatabase(mSelectedTargetUserName);
             }
 
             @Override
@@ -438,6 +449,32 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
                 // Do nothing
             }
         });
+    }
+
+    private void getSelectedTargetUserFromDatabase(final String selectedTargetUsername) {
+        // Get user object from username
+        ParseQuery<ParseUser> query = ParseUser.getQuery();
+        query.whereEqualTo(LittleBigBrother.DB.USER_NAME_ATTRIBUTE, selectedTargetUsername);
+        query.getFirstInBackground(new GetCallback<ParseUser>() {
+            @Override
+            public void done(ParseUser parseUser, ParseException e) {
+                if (e == null) {
+                    if (parseUser != null) {
+                        Log.debug(this, "Saving selected user " + selectedTargetUsername + " to reminder.");
+                        saveSelectedUser(parseUser);
+                    } else {
+                        Log.debug(this, "Unable to find user '" + mSelectedTargetUserName + "'");
+                    }
+                } else {
+                    Log.exception(this, e);
+                }
+            }
+        });
+    }
+
+    private void saveSelectedUser(ParseUser user) {
+        // Save to mReminder
+        ((Reminder.TargetUser) mReminder).setTargetUser(user);
     }
 
     // FINALIZE REMINDER FORM
@@ -790,10 +827,89 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
         mSelectDateTimeWidget.show();
     }
 
-    private void saveChanges() {
+    private void setTitleFromField() {
+        String reminderTitle = mReminderTitleView.getText().toString();
+
+        mReminder.setTitle(reminderTitle);
+    }
+
+    private void setDescriptionFromField() {
+        String reminderDescription = mReminderDescriptionView.getText().toString();
+
+        mReminder.setDescription(reminderDescription);
+    }
+
+    private void setRadiusFromField() {
+        Log.debug(this, "Reminder type: " + mReminder.type().value());
+        if (mReminder.type() == ReminderType.LOCATION || mReminder.type() == ReminderType.TARGET_USER) {
+            ((ReminderWithRadius) mReminder).setRadius(mSelectRadiusWidget.getValue());
+        }
+    }
+
+    private void setTitleAndDescriptionFromFields() {
+        setTitleFromField();
+        setDescriptionFromField();
+    }
+
+    private void setDateFromFields() {
         if (mReminder.type() == ReminderType.DATE_TIME) {
             mReminder.setExpires(mSelectExpirationDateTimeWidget.getDateTime());
+            ((Reminder.DateTime) mReminder).setDate(mSelectDateTimeWidget.getDateTime());
+            createAlarmForReminder(((Reminder.DateTime) mReminder).getDate());
         }
+    }
+
+    private int getReminderId() {
+        reminderId = reminderId + 1;
+        return reminderId;
+    }
+
+    public Reminder getReminderFromList(int pos) {
+        return mReminderListAdapter.getItem(pos);
+    }
+
+    private void createGeoFenceForReminder(Reminder.Location reminder) {
+        long expirationDuration = (reminder.getExpires() != null ? reminder.getExpires().getTimeInMillisUntilThis() : Geofence.NEVER_EXPIRE);
+
+        Log.debug(this, "Reminder title: " + reminder.getTitle());
+
+        mGeofenceList.clear();
+
+        mGeofenceList.add(new Geofence.Builder()
+                .setRequestId(reminder.getTitle())
+                .setCircularRegion(
+                        reminder.getPosition().getLatitude(),
+                        reminder.getPosition().getLongitude(),
+                        reminder.getRadius()
+                ).setLoiteringDelay(LittleBigBrother.GEOFENCE_TRANSITION_DWELL_TIME)
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_DWELL)
+                .setExpirationDuration(expirationDuration)
+                .build());
+    }
+
+    private GeofencingRequest getGeofencingRequest() {
+        GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
+        builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_DWELL);
+        builder.addGeofences(mGeofenceList);
+        return builder.build();
+    }
+
+    private void createAlarmForReminder(SimpleDateTime simpleDateTime) {
+        Intent intentAlarm = new Intent(this, AlarmReceiver.class);
+        intentAlarm.putExtra("reminderTitle", mReminder.getTitle());
+        intentAlarm.putExtra("reminderDescription", mReminder.getDescription());
+        intentAlarm.putExtra("reminderId", getReminderId());
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        long time = simpleDateTime.getTimeInMillis();
+
+        alarmManager.set(AlarmManager.RTC_WAKEUP, time, PendingIntent.getBroadcast(this, 1, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT));
+    }
+
+    private void saveChanges() {
+        setTitleAndDescriptionFromFields();
+        setRadiusFromField();
+        setDateFromFields();
 
         if (!mReminder.valid()) {
             Log.error(this, "Attempting save invalid Reminder.");
@@ -802,6 +918,9 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
 
         Log.debug(this, "Saving changes to Reminder: " + mReminder.getTitle());
 
+        String id = Integer.toString(mReminder.getId());
+        ApplicationController.setReminder(id, mReminder);
+
         mProgressWidget.setLabel(SAVE_CHANGES_PROGRESS_TEXT);
         mProgressWidget.show();
 
@@ -809,6 +928,7 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
             @Override
             public void done(ParseException e) {
                 if (e != null) {
+                    Log.debug(this, "Successfully saved changes to reminder '" + mReminder.getTitle() + "' to database.");
                     mReminder = new Reminder();
                     setToReminderList();
                     mProgressWidget.hide();
@@ -835,28 +955,42 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
     }
 
     private void createReminder() {
-        if (mReminder.type() == ReminderType.DATE_TIME) {
-            mReminder.setExpires(mSelectExpirationDateTimeWidget.getDateTime());
-        }
+        setTitleAndDescriptionFromFields();
+        setRadiusFromField();
+        setDateFromFields();
 
         if (!mReminder.valid()) {
             Log.error(this, "Attempting save invalid Reminder.");
             return;
         }
 
+
+
         Log.debug(this, "Creating new Reminder: " + mReminder.getTitle());
 
         mReminderListWidget.add(mReminder);
+
+        // Get target user
+        if (mReminder.type() == ReminderType.TARGET_USER) {
+            String selectedTargetUserName = mSelectTargetUserSpinner.getSelectedItem().toString();
+            Log.debug(this, selectedTargetUserName);
+        }
 
         mReminder.saveInBackground(new SaveCallback() {
             @Override
             public void done(ParseException e) {
                 if (e != null) {
+                    Log.debug(this, "Successfully created reminder '" + mReminder.getTitle() + "' in database.");
 
+                    if (mReminder.type() == ReminderType.LOCATION) {
+                        createGeoFenceForReminder((Reminder.Location) mReminder);
+                        addGeofences();
+                    }
+
+                    mReminder = new Reminder();
                 } else {
                     Log.exception(this, e);
                 }
-                mReminder = new Reminder();
                 setToReminderList();
                 mProgressWidget.hide();
             }
@@ -878,7 +1012,7 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
     }
 
     private void deleteReminder(Reminder reminder) {
-        Log.debug(this, "Deleting reminder: " + reminder.getTitle());
+        //Log.debug(this, "Deleting reminder: " + reminder.getTitle());
 
         reminder.deleteInBackground(new DeleteCallback() {
             @Override
@@ -890,5 +1024,35 @@ public class RemindersActivity extends AppCompatActivity implements OnReminderRa
                 }
             }
         });
+    }
+
+    private abstract class OnTargetUserSavedCallback {
+        public abstract void onTargetUserSaved();
+    }
+
+    private PendingIntent getGeofencePendingIntent() {
+        // Reuse the PendingIntent if we already have it.
+        if (mGeofencePendingIntent != null) {
+            return mGeofencePendingIntent;
+        }
+        Intent intent = new Intent(this, GeofenceTransitionsIntentService.class);
+        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when
+        // calling addGeofences() and removeGeofences().
+        return PendingIntent.getService(this, 0, intent, PendingIntent.
+                FLAG_UPDATE_CURRENT);
+    }
+
+    public void addGeofences() {
+        Log.debug(this, "addGeofences() called.");
+        LocationServices.GeofencingApi.addGeofences(
+                ApplicationController.getGoogleApiClient(),
+                getGeofencingRequest(),
+                getGeofencePendingIntent()
+        ).setResultCallback(this);
+    }
+
+    @Override
+    public void onResult(Result result) {
+        Log.debug(this, "onResult called with: " + result);
     }
 }

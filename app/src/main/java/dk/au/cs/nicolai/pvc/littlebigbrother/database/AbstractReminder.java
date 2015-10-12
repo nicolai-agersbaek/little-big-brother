@@ -7,6 +7,7 @@ import com.parse.ParseUser;
 import java.util.Calendar;
 import java.util.Date;
 
+import dk.au.cs.nicolai.pvc.littlebigbrother.ApplicationController;
 import dk.au.cs.nicolai.pvc.littlebigbrother.LittleBigBrother;
 import dk.au.cs.nicolai.pvc.littlebigbrother.exception.UserNotLoggedInException;
 import dk.au.cs.nicolai.pvc.littlebigbrother.util.SimpleDateTime;
@@ -25,6 +26,8 @@ public abstract class AbstractReminder extends ParseObject {
 
     private static final String REMINDER_EXPIRES_ATTRIBUTE   = "expires";
 
+    private int id;
+
     protected AbstractReminder() {}
 
     protected AbstractReminder(ReminderType type) throws UserNotLoggedInException {
@@ -34,9 +37,18 @@ public abstract class AbstractReminder extends ParseObject {
         if (currentUser != null) {
             setOwner(currentUser);
             setType(type);
+            id = ApplicationController.getReminderId();
         } else {
             throw new UserNotLoggedInException("Cannot create Reminder");
         }
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    private void setId(int id) {
+        this.id = id;
     }
 
     public abstract String typeDetails();
